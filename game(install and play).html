@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE WHISPERING WALLS - Proyecto Omega</title>
+    <style>
+        /* ================================================================
+           DISEÑO ATMOSFÉRICO DE TERROR PSICOLÓGICO
+           Este bloque define la identidad visual del juego: "Digital Decay".
+           ================================================================
+        */
+
+        :root {
+            --primary-bg: #020202;
+            --text-main: #b0b0b0;
+            --blood-red: #660000;
+            --glitch-cyan: #00ffff;
+            --glitch-magenta: #ff00ff;
+            --terminal-green: #1aff1a;
+            --shadow-depth: rgba(0, 0, 0, 0.95);
+            --font-pixel: 'Courier New', Courier, monospace;
+            --vignette-intensity: 60%;
+        }
+
+        /* Reset y Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            font-family: var(--font-pixel);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* EFECTO CRT Y ESCANEO (Para la sensación de monitor viejo) */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.1) 50%
+            ), 
+            linear-gradient(
+                90deg, 
+                rgba(255, 0, 0, 0.03), 
+                rgba(0, 255, 0, 0.01), 
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 3px, 3px 100%;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .crt-overlay::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(
+                to bottom,
+                rgba(18, 16, 16, 0) 0%,
+                rgba(18, 16, 16, 0.15) 50%,
+                rgba(18, 16, 16, 0) 100%
+            );
+            background-size: 100% 10%;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        #master-container {
+            width: 90vw;
+            height: 90vh;
+            max-width: 1000px;
+            max-height: 700px;
+            position: relative;
+            border: 2px solid #1a1a1a;
+            background: radial-gradient(circle, #0a0a0a 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 1);
+        }
+
+        /* VIÑETA DINÁMICA (Se encoge con la cordura) */
+        .vignette {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+            z-index: 5;
+            transition: box-shadow 2s ease;
+        }
+
+        /* HEADER Y ESTADÍSTICAS */
+        .game-header {
+            height: 60px;
+            border-bottom: 1px solid #1a1a1a;
+            display: flex;
+            padding: 0 20px;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #050505;
+            z-index: 10;
+        }
+
+        .stat-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.6rem;
+            color: #444;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .progress-bar-container {
+            width: 120px;
+            height: 4px;
+            background: #111;
+            position: relative;
+        }
+
+        #sanity-bar {
+            width: 100%;
+            height: 100%;
+            background: var(--blood-red);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px var(--blood-red);
+        }
+
+        /* ÁREA DE JUEGO PRINCIPAL */
+        #viewport {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            overflow-y: auto;
+            position: relative;
+            scrollbar-width: none; /* Firefox */
+        }
+
+        #viewport::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        /* TEXTO NARRATIVO */
+        .message {
+            margin-bottom: 25px;
+            line-height: 1.6;
+            font-size: 1.1rem;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: emerge 0.8s forwards;
+        }
+
+        @keyframes emerge {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .whisper-text {
+            color: #444;
+            font-style: italic;
+            font-size: 0.9rem;
+            display: block;
+            margin-top: 10px;
+        }
+
+        /* PANEL DE ACCIONES */
+        #action-panel {
+            min-height: 150px;
+            background: #030303;
+            border-top: 1px solid #1a1a1a;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .action-btn {
+            background: #080808;
+            border: 1px solid #222;
+            color: #555;
+            padding: 15px;
+            font-family: var(--font-pixel);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn:hover {
+            border-color: #444;
+            color: #eee;
+            background: #0c0c0c;
+        }
+
+        .action-btn:active {
+            background: var(--blood-red);
+            color: white;
+        }
+
+        /* EFECTOS DE GLITCH (Se activarán vía JS) */
+        .glitch-active {
+            animation: glitch-anim 0.2s infinite;
+        }
+
+        @keyframes glitch-anim {
+            0% { transform: translate(0); text-shadow: -2px 0 var(--glitch-cyan), 2px 0 var(--glitch-magenta); }
+            25% { transform: translate(-2px, 2px); }
+            50% { transform: translate(2px, -2px); filter: hue-rotate(90deg); }
+            75% { transform: translate(-1px, -1px); }
+            100% { transform: translate(0); }
+        }
+
+        /* SISTEMA DE NOTIFICACIONES TIPO LOG */
+        #event-log {
+            position: absolute;
+            bottom: 170px;
+            left: 20px;
+            font-size: 0.65rem;
+            color: #222;
+            pointer-events: none;
+        }
+
+        /* MARCADORES DE INVENTARIO */
+        #inventory-display {
+            display: flex;
+            gap: 10px;
+            position: absolute;
+            right: 20px;
+            bottom: 170px;
+        }
+
+        .inv-slot {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem;
+            color: #333;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="crt-overlay"></div>
+    
+    <div id="master-container">
+        <div class="vignette" id="main-vignette"></div>
+
+        <header class="game-header">
+            <div class="stat-group">
+                <span class="stat-label">Estado Mental</span>
+                <div class="progress-bar-container">
+                    <div id="sanity-bar"></div>
+                </div>
+            </div>
+            <div class="stat-group" style="align-items: flex-end;">
+                <span class="stat-label">Sincronización</span>
+                <span id="sync-value" style="color: var(--terminal-green); font-size: 0.8rem;">100%</span>
+            </div>
+        </header>
+
+        <main id="viewport">
+            </main>
+
+        <div id="event-log">SISTEMA_INICIALIZADO...</div>
+        
+        <div id="inventory-display">
+            <div class="inv-slot" title="Vacío">?</div>
+            <div class="inv-slot" title="Vacío">?</div>
+            <div class="inv-slot" title="Vacío">?</div>
+        </div>
+
+        <footer id="action-panel">
+            </footer>
+    </div>
+
+    <script>
+        /* PARTE 2: EL MOTOR LÓGICO Y EL "CORE" DE DATOS
+           (Continuará en la siguiente respuesta...)
+        */
+      /**
+         * ================================================================
+         * PARTE 2: EL MOTOR DE PROCESAMIENTO NARRATIVO
+         * Este módulo gestiona cómo fluye la historia y cómo reacciona
+         * el mundo a la pérdida de cordura del jugador.
+         * ================================================================
+         */
+
+        const State = {
+            sanity: 100,
+            sync: 100,
+            inventory: [],
+            currentScene: 'limbo_inicial',
+            flags: new Set(), // Para eventos únicos (ej. 'llave_recogida')
+            isWriting: false,
+            turnCount: 0
+        };
+
+        const GameEngine = {
+            
+            // 1. INICIALIZACIÓN DEL SISTEMA
+            boot() {
+                console.log("%c SISTEMA DE TRAUMA INICIALIZADO ", "background: #8b0000; color: white;");
+                this.updateUI();
+                this.loadScene(State.currentScene);
+                this.startPulse();
+            },
+
+            // 2. MOTOR TYPEWRITER (Efecto de escritura con pausas)
+            // Diseñado para simular una presencia que duda al hablar.
+            async typeWriter(element, text) {
+                State.isWriting = true;
+                element.innerHTML = "";
+                
+                let i = 0;
+                const baseSpeed = 35; // ms por carácter
+                
+                // Creamos un cursor parpadeante
+                const cursor = document.createElement('span');
+                cursor.className = 'glitch-text';
+                cursor.innerHTML = "_";
+                element.appendChild(cursor);
+
+                while (i < text.length) {
+                    let char = text.charAt(i);
+                    let delay = baseSpeed;
+
+                    // Pausas dramáticas por puntuación
+                    if (char === '.' || char === '?' || char === '!') delay = 600;
+                    if (char === ',') delay = 300;
+                    
+                    // Efecto de tartamudeo si la cordura es baja
+                    if (State.sanity < 50 && Math.random() > 0.92) {
+                        delay += 400;
+                    }
+
+                    // Inyectar el carácter antes del cursor
+                    cursor.insertAdjacentHTML('beforebegin', char);
+                    
+                    i++;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    
+                    // Auto-scroll para mantener el texto a la vista
+                    const viewport = document.getElementById('viewport');
+                    viewport.scrollTop = viewport.scrollHeight;
+                }
+
+                cursor.remove();
+                State.isWriting = false;
+                this.showChoices();
+            },
+
+            // 3. CARGA DE ESCENAS
+            loadScene(sceneID) {
+                const scene = StoryData[sceneID];
+                if (!scene) return console.error("Error: Escena no encontrada ->", sceneID);
+
+                State.currentScene = sceneID;
+                
+                // Limpiar el panel de acciones antes de la transición
+                document.getElementById('action-panel').innerHTML = "";
+
+                // Crear el contenedor del mensaje
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                document.getElementById('viewport').appendChild(messageDiv);
+
+                // Ejecutar lógica específica de la escena (si existe)
+                if (scene.onEnter) scene.onEnter();
+
+                // Iniciar la narración
+                this.typeWriter(messageDiv, scene.text);
+                
+                // Registrar en el log del sistema
+                this.logSystem(`ENTRANDO_EN: ${sceneID.toUpperCase()}...`);
+            },
+
+            // 4. GESTIÓN DE OPCIONES (UI)
+            showChoices() {
+                const scene = StoryData[State.currentScene];
+                const panel = document.getElementById('action-panel');
+                panel.innerHTML = "";
+
+                scene.choices.forEach(choice => {
+                    // Verificar si la opción requiere un objeto o flag
+                    if (choice.requirement && !State.flags.has(choice.requirement)) {
+                        return; // No mostrar si no cumple requisitos
+                    }
+
+                    const btn = document.createElement('button');
+                    btn.className = 'action-btn';
+                    btn.innerHTML = choice.text;
+                    btn.onclick = () => this.handleChoice(choice);
+                    panel.appendChild(btn);
+                });
+            },
+
+            handleChoice(choice) {
+                if (State.isWriting) return;
+
+                // Aplicar consecuencias de la decisión
+                if (choice.sanityMod) this.adjustSanity(choice.sanityMod);
+                if (choice.addFlag) State.flags.add(choice.addFlag);
+
+                State.turnCount++;
+                this.loadScene(choice.target);
+            },
+
+            // 5. SISTEMA DE ESTADÍSTICAS
+            adjustSanity(amount) {
+                State.sanity = Math.max(0, Math.min(100, State.sanity + amount));
+                this.updateUI();
+
+                if (State.sanity <= 0) {
+                    this.triggerGameOver("Tu mente se ha fracturado. Ya no eres dueño de tus silencios.");
+                }
+            },
+
+            updateUI() {
+                const bar = document.getElementById('sanity-bar');
+                const sync = document.getElementById('sync-value');
+                const vignette = document.getElementById('main-vignette');
+
+                bar.style.width = `${State.sanity}%`;
+                sync.innerText = `${State.sync - (State.turnCount * 2)}%`;
+
+                // La viñeta se cierra según baja la cordura
+                const shadowIntensity = 100 - (State.sanity * 0.5);
+                vignette.style.boxShadow = `inset 0 0 ${shadowIntensity * 3}px rgba(0,0,0,0.95)`;
+                
+                // Si la cordura es crítica, activar el glitch visual permanente
+                if (State.sanity < 25) {
+                    document.getElementById('master-container').classList.add('glitch-active');
+                } else {
+                    document.getElementById('master-container').classList.remove('glitch-active');
+                }
+            },
+
+            logSystem(msg) {
+                const log = document.getElementById('event-log');
+                log.innerText = `> ${msg}`;
+            },
+
+            // Efecto de latido visual
+            startPulse() {
+                setInterval(() => {
+                    const container = document.getElementById('master-container');
+                    if (State.sanity < 40) {
+                        container.style.borderColor = Math.random() > 0.5 ? '#8b0000' : '#1a1a1a';
+                    }
+                }, 1000);
+            },
+
+            triggerGameOver(reason) {
+                // Se implementará en detalle en la Parte 15, pero dejamos la base
+                document.body.innerHTML = `<div style="color:red; text-align:center; padding-top:20%;"><h1>CONEXIÓN PERDIDA</h1><p>${reason}</p></div>`;
+            }
+        };
+
+        /**
+         * ESTRUCTURA DE DATOS NARRATIVOS (StoryData)
+         * Aquí almacenaremos los nodos de la historia.
+         */
+        const StoryData = {
+            'limbo_inicial': {
+                text: "Estás en un lugar donde la luz no se atreve a entrar. No hay arriba ni abajo, solo el sonido de tu propia respiración... que suena demasiado fuerte. Demasiado cerca de tu nuca.",
+                choices: [
+                    { text: "¿Hola? ¿Hay alguien?", target: 'primera_respuesta', sanityMod: -2 },
+                    { text: Caminar en la oscuridad, target: 'pasillo_infinito', sanityMod: 0 }
+                ]
+            },
+            'primera_respuesta': {
+                text: "Tu voz no produce eco. En su lugar, algo bajo tus pies cruje. Al agacharte, tus manos tocan algo frío, metálico y pegajoso.",
+                choices: [
+                    { text: "Recoger el objeto", target: 'limbo_inicial', addFlag: 'objeto_misterioso' },
+                    { text: "Alejarse rápidamente", target: 'pasillo_infinito', sanityMod: -5 }
+                ]
+            }
+            // Las siguientes escenas se añadirán en la Parte 3...
+        };
+
+        // El arranque se hará cuando todo el script esté cargado
+      /**
+         * ================================================================
+         * PARTE 3: AUDIO SINTÉTICO Y GESTIÓN DE OBJETOS
+         * Aquí creamos el ambiente sonoro y la lógica de recolección.
+         * ================================================================
+         */
+
+        const AudioEngine = {
+            ctx: null,
+            oscillator: null,
+            gainNode: null,
+            isInitialized: false,
+
+            // Inicializa el contexto de audio (requiere interacción del usuario)
+            init() {
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.gainNode = this.ctx.createGain();
+                    this.gainNode.connect(this.ctx.destination);
+                    this.isInitialized = true;
+                    this.playAmbientDrone();
+                } catch (e) {
+                    console.error("Audio no soportado:", e);
+                }
+            },
+
+            // Genera un zumbido de baja frecuencia que causa ansiedad
+            playAmbientDrone() {
+                if (!this.isInitialized) return;
+                
+                const osc = this.ctx.createOscillator();
+                const filter = this.ctx.createBiquadFilter();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(40, this.ctx.currentTime); // 40Hz: Infrasonido inquietante
+                
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(100, this.ctx.currentTime);
+
+                osc.connect(filter);
+                filter.connect(this.gainNode);
+                
+                this.gainNode.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                osc.start();
+
+                // Modulación aleatoria del volumen (Efecto de respiración)
+                setInterval(() => {
+                    const vol = 0.02 + Math.random() * 0.05;
+                    this.gainNode.gain.exponentialRampToValueAtTime(vol, this.ctx.currentTime + 2);
+                }, 3000);
+            },
+
+            // Efecto de sonido de "click" metálico o estática
+            playGlitchSound() {
+                if (!this.isInitialized) return;
+                
+                const duration = 0.1;
+                const osc = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(Math.random() * 400 + 100, this.ctx.currentTime);
+                
+                osc.connect(g);
+                g.connect(this.ctx.destination);
+                
+                g.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+        };
+
+        // Extensión del Motor para Inventario
+        GameEngine.inventoryAdd = function(itemName, itemID) {
+            if (State.inventory.length >= 3) {
+                this.logSystem("INVENTARIO_LLENO: No puedes cargar más.");
+                return false;
+            }
+            
+            State.inventory.push({ name: itemName, id: itemID });
+            this.updateInventoryUI();
+            this.logSystem(`ADQUIRIDO: ${itemName.toUpperCase()}`);
+            AudioEngine.playGlitchSound();
+            return true;
+        };
+
+        GameEngine.updateInventoryUI = function() {
+            const slots = document.querySelectorAll('.inv-slot');
+            slots.forEach((slot, index) => {
+                if (State.inventory[index]) {
+                    slot.innerText = State.inventory[index].name.charAt(0);
+                    slot.style.borderColor = "var(--blood-red)";
+                    slot.title = State.inventory[index].name;
+                } else {
+                    slot.innerText = "?";
+                    slot.style.borderColor = "#111";
+                }
+            });
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL PASILLO DE LAS SOMBRAS
+         * Añadimos nodos de navegación y eventos de cordura.
+         */
+        
+        // Sobrescribimos/Ampliamos el objeto previo de StoryData
+        Object.assign(StoryData, {
+            'pasillo_infinito': {
+                text: "El pasillo se extiende más allá de lo que tu vista permite. El papel tapiz aquí ha sido arrancado, revelando ladrillos que parecen latir. A lo lejos, una puerta de metal vibra violentamente.",
+                choices: [
+                    { text: "Acercarse a la puerta que vibra", target: 'puerta_metal', sanityMod: -5 },
+                    { text: "Explorar el suelo en busca de algo útil", target: 'suelo_pasillo', sanityMod: 0 },
+                    { text: "Regresar al inicio", target: 'limbo_inicial', sanityMod: -2 }
+                ]
+            },
+            'suelo_pasillo': {
+                text: "Te arrodillas. Entre las grietas de la madera podrida, algo brilla con un matiz aceitoso. Es una llave forjada en un material que parece hueso.",
+                choices: [
+                    { 
+                        text: "Recoger la llave de hueso", 
+                        target: 'pasillo_infinito', 
+                        onSelect: () => GameEngine.inventoryAdd("Llave de Hueso", "llave_hueso")
+                    },
+                    { text: "Ignorarla, da mala espina", target: 'pasillo_infinito', sanityMod: -2 }
+                ]
+            },
+            'puerta_metal': {
+                text: "La puerta está ardiendo al tacto. Escuchas gritos del otro lado, pero no son humanos... suenan como frecuencias de radio chocando entre sí. Hay un ojo de cerradura pequeño y deforme.",
+                choices: [
+                    { 
+                        text: "Usar la Llave de Hueso", 
+                        target: 'sala_maquinas', 
+                        requirement: 'llave_hueso',
+                        sanityMod: +10 
+                    },
+                    { text: "Golpear la puerta", target: 'evento_golpe', sanityMod: -15 },
+                    { text: "Huir del ruido", target: 'pasillo_infinito' }
+                ]
+            },
+            'evento_golpe': {
+                text: "Golpeas el metal. El ruido cesa instantáneamente. Un silencio tan absoluto que te duelen los oídos se apodera del lugar. Entonces, algo golpea de vuelta. Tres veces. Más fuerte que tú.",
+                choices: [
+                    { text: "Correr sin mirar atrás", target: 'pasillo_oscuro', sanityMod: -10 },
+                    { text: "Pegar el oído a la puerta", target: 'muerte_oido', sanityMod: -50 }
+                ]
+            },
+            'muerte_oido': {
+                text: "Al acercarte, la puerta se convierte en líquido. Algo surge del vacío y te susurra una verdad que tu cerebro no puede procesar. La realidad se desmorona.",
+                choices: [
+                    { text: "Aceptar el fin", target: 'gameOver', onSelect: () => GameEngine.triggerGameOver("Tu curiosidad fue tu sentencia.") }
+                ]
+            }
+        });
+
+        // Modificamos el handleChoice para soportar onSelect
+        const originalHandleChoice = GameEngine.handleChoice;
+        GameEngine.handleChoice = function(choice) {
+            // Inicializar audio en el primer click
+            if (!AudioEngine.isInitialized) AudioEngine.init();
+            
+            if (choice.onSelect) choice.onSelect();
+            
+            // Lógica de requisitos de objetos
+            if (choice.requirement) {
+                const hasItem = State.inventory.some(item => item.id === choice.requirement);
+                if (!hasItem) {
+                    this.logSystem("REQUISITO_FALTANTE: " + choice.requirement);
+                    return;
+                }
+            }
+            
+            originalHandleChoice.call(this, choice);
+        };
+      /**
+         * ================================================================
+         * PARTE 4: EL SISTEMA DE AMENAZA Y FLASHBACKS
+         * Aquí introducimos la lógica de "La Entidad" y efectos 
+         * visuales de distorsión procedimentales.
+         * ================================================================
+         */
+
+        const ThreatEngine = {
+            level: 0,
+            timer: null,
+            isActive: false,
+
+            // Inicia el rastreo de la entidad
+            startTracking() {
+                if (this.isActive) return;
+                this.isActive = true;
+                this.timer = setInterval(() => this.increaseThreat(), 5000);
+                GameEngine.logSystem("SISTEMA_DE_ALERTA_ACTIVO: Presencia detectada.");
+            },
+
+            increaseThreat() {
+                // La amenaza sube más rápido si la cordura es baja
+                const multiplier = State.sanity < 50 ? 2 : 1;
+                this.level += 1 * multiplier;
+
+                if (this.level > 30 && Math.random() > 0.7) {
+                    VisualFX.triggerDistortion();
+                }
+
+                if (this.level > 70 && Math.random() > 0.8) {
+                    VisualFX.showFlashback();
+                }
+
+                if (this.level >= 100) {
+                    GameEngine.triggerGameOver("Te detuviste demasiado tiempo. Lo que sea que vive en las paredes finalmente te alcanzó.");
+                }
+
+                this.updateThreatUI();
+            },
+
+            resetThreat() {
+                this.level = Math.max(0, this.level - 20);
+                this.updateThreatUI();
+            },
+
+            updateThreatUI() {
+                // El pulso del borde se vuelve más rojo y rápido
+                const container = document.getElementById('master-container');
+                if (this.level > 50) {
+                    container.style.boxShadow = `0 0 ${this.level/2}px var(--blood-red)`;
+                }
+            }
+        };
+
+        const VisualFX = {
+            // Genera un "flash" visual con un mensaje subliminal
+            showFlashback() {
+                const flash = document.createElement('div');
+                flash.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; width: 100%; height: 100%;
+                    background: white;
+                    z-index: 2000;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    mix-blend-mode: difference;
+                `;
+                
+                const messages = ["NO ES REAL", "MIRA ATRÁS", "DÉJANOS ENTRAR", "HUELE A SANGRE"];
+                flash.innerHTML = `<h1 style="color:black; font-size: 5rem;">${messages[Math.floor(Math.random()*messages.length)]}</h1>`;
+                
+                document.body.appendChild(flash);
+                AudioEngine.playGlitchSound();
+
+                setTimeout(() => {
+                    flash.remove();
+                }, 100);
+            },
+
+            // Distorsiona la pantalla brevemente
+            triggerDistortion() {
+                const viewport = document.getElementById('viewport');
+                viewport.style.filter = `blur(2px) contrast(2) hue-rotate(${Math.random()*360}deg)`;
+                
+                setTimeout(() => {
+                    viewport.style.filter = 'none';
+                }, 150);
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: LA SALA DE MÁQUINAS Y EL ENCUENTRO
+         */
+        
+        Object.assign(StoryData, {
+            'sala_maquinas': {
+                text: "La puerta de metal se abre con un quejido agónico. Dentro, enormes pistones de hierro suben y bajan, pero no mueven maquinaria... parecen estar moliendo algo orgánico. El suelo es una rejilla sobre un pozo sin fondo.",
+                onEnter: () => {
+                    ThreatEngine.startTracking();
+                    State.sync -= 5;
+                },
+                choices: [
+                    { text: "Caminar por la rejilla", target: 'centro_sala', sanityMod: -5 },
+                    { text: "Gritar hacia el pozo", target: 'eco_pozo', sanityMod: -10 },
+                    { text: "Cerrar la puerta tras de ti", target: 'puerta_cerrada', addFlag: 'encerrado' }
+                ]
+            },
+            'centro_sala': {
+                text: "A mitad de camino, uno de los pistones se detiene. Un silencio sepulcral inunda la sala. De entre las sombras de las máquinas, una figura alta y desgarbada comienza a desplegarse. Sus extremidades tienen demasiadas articulaciones.",
+                choices: [
+                    { text: "Quedarte inmóvil", target: 'muerte_figura', sanityMod: -20 },
+                    { text: "Correr hacia la salida de emergencia", target: 'pasillo_rojo', sanityMod: -5 },
+                    { 
+                        text: "Lanzar la Llave de Hueso para distraerlo", 
+                        target: 'distraccion_exitosa', 
+                        requirement: 'llave_hueso',
+                        onSelect: () => {
+                            // Perder el objeto del inventario
+                            State.inventory = State.inventory.filter(i => i.id !== 'llave_hueso');
+                            GameEngine.updateInventoryUI();
+                            ThreatEngine.resetThreat();
+                        }
+                    }
+                ]
+            },
+            'eco_pozo': {
+                text: "Tu grito cae al vacío. Pasan los segundos. No hay impacto. Pero entonces, tu propio grito vuelve a subir, distorsionado, transformado en una carcajada que no es tuya.",
+                choices: [
+                    { text: "Retroceder espantado", target: 'sala_maquinas', sanityMod: -10 }
+                ]
+            },
+            'puerta_cerrada': {
+                text: "El cerrojo encaja. Ahora estás a solas con las máquinas. El ruido es ensordecedor, pero te sientes extrañamente seguro... hasta que te das cuenta de que el ritmo de los pistones coincide exactamente con los latidos de tu corazón.",
+                choices: [
+                    { text: "Intentar abrir de nuevo", target: 'puerta_bloqueada', sanityMod: -5 },
+                    { text: "Sentarte y esperar", target: 'espera_eterna', sanityMod: -15 }
+                ]
+            },
+            'pasillo_rojo': {
+                text: "Escapas por los pelos. El pasillo al que llegas está bañado en una luz roja de emergencia. Las paredes aquí están calientes y el techo gotea un líquido espeso.",
+                choices: [
+                    { text: "Seguir adelante", target: 'el_ascensor', sanityMod: -5 }
+                ]
+            },
+            'distraccion_exitosa': {
+                text: "La criatura se lanza sobre la llave con una velocidad inhumana. El sonido del hueso crujiendo bajo sus dientes te da los segundos necesarios para huir.",
+                choices: [
+                    { text: "¡Correr!", target: 'pasillo_rojo' }
+                ]
+            }
+        });
+
+        // Eventos aleatorios del sistema
+        setInterval(() => {
+            if (State.sanity < 30 && Math.random() > 0.95) {
+                GameEngine.logSystem("ERROR_DE_MEMORIA: Datos de personalidad corruptos.");
+                VisualFX.triggerDistortion();
+            }
+        }, 8000);
+      /**
+         * ================================================================
+         * PARTE 5: SISTEMA DE TERMINAL Y HACKEO
+         * Permite la interacción directa mediante comandos de texto
+         * para profundizar en la narrativa y resolver puzles.
+         * ================================================================
+         */
+
+        const TerminalEngine = {
+            isOpen: false,
+            currentDirectory: 'ROOT',
+            unlockedFiles: ['LEAME.txt'],
+            passwords: { 'SISTEMA': '1987', 'CORREO': 'SILENCIO' },
+
+            // Abre la interfaz de terminal sobre el viewport
+            open() {
+                this.isOpen = true;
+                const viewport = document.getElementById('viewport');
+                const actionPanel = document.getElementById('action-panel');
+                
+                // Ocultar controles normales
+                actionPanel.style.display = 'none';
+                
+                const termOverlay = document.createElement('div');
+                termOverlay.id = 'terminal-ui';
+                termOverlay.style.cssText = `
+                    background: #000;
+                    color: var(--terminal-green);
+                    padding: 20px;
+                    font-size: 0.9rem;
+                    height: 100%;
+                    border: 1px solid var(--terminal-green);
+                    display: flex;
+                    flex-direction: column;
+                    text-shadow: 0 0 5px var(--terminal-green);
+                `;
+
+                termOverlay.innerHTML = `
+                    <div id="term-output" style="flex-grow:1; overflow-y:auto; margin-bottom:10px;">
+                        <p>[SISTEMA OPERATIVO 'VOID-OS' V.0.4.2]</p>
+                        <p>Escribe 'ayuda' para ver los comandos disponibles.</p>
+                    </div>
+                    <div style="display:flex;">
+                        <span>${this.currentDirectory}>&nbsp;</span>
+                        <input type="text" id="term-input" autocomplete="off" autofocus 
+                               style="background:transparent; border:none; color:inherit; 
+                               outline:none; font-family:inherit; width:80%;">
+                    </div>
+                `;
+
+                viewport.appendChild(termOverlay);
+                
+                const input = document.getElementById('term-input');
+                input.focus();
+                
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') this.processCommand(input.value);
+                });
+
+                GameEngine.logSystem("ACCESO_A_TERMINAL: Manual_Override_Enabled");
+            },
+
+            close() {
+                this.isOpen = false;
+                const term = document.getElementById('terminal-ui');
+                if (term) term.remove();
+                document.getElementById('action-panel').style.display = 'grid';
+                GameEngine.logSystem("TERMINAL_CERRADA");
+            },
+
+            processCommand(rawCmd) {
+                const output = document.getElementById('term-output');
+                const input = document.getElementById('term-input');
+                const cmd = rawCmd.toLowerCase().trim();
+                
+                const newLine = document.createElement('p');
+                newLine.innerHTML = `<span style="color:#555;">> ${rawCmd}</span>`;
+                output.appendChild(newLine);
+                input.value = '';
+
+                switch(cmd) {
+                    case 'ayuda':
+                        this.print('Comandos: ver, leer [archivo], desbloquear [pass], salir', output);
+                        break;
+                    case 'ver':
+                        this.print(`Archivos en ${this.currentDirectory}: ${this.unlockedFiles.join(', ')}`, output);
+                        break;
+                    case 'salir':
+                        this.close();
+                        break;
+                    default:
+                        if (cmd.startsWith('leer ')) {
+                            this.readFile(cmd.split(' ')[1], output);
+                        } else if (cmd.startsWith('desbloquear ')) {
+                            this.unlock(cmd.split(' ')[1], output);
+                        } else {
+                            this.print('Comando no reconocido o corrupto.', output);
+                        }
+                }
+                output.scrollTop = output.scrollHeight;
+            },
+
+            print(text, target) {
+                const p = document.createElement('p');
+                p.innerText = text;
+                target.appendChild(p);
+            },
+
+            readFile(fileName, output) {
+                if (!fileName) return this.print('¿Qué archivo quieres leer?', output);
+                
+                const files = {
+                    'leame.txt': "Este lugar no fue construido para los vivos. Si estás leyendo esto, el protocolo de sincronización falló. No mires a las paredes directamente.",
+                    'bitacora.log': "Día 44: Los susurros ahora tienen nombres. Saben quién soy. El ascensor es la única salida, pero requiere tres núcleos de energía.",
+                    'secreto.dat': "[DATOS CORRUPTOS] ...el código de la puerta del sótano es 4-2-0-9..."
+                };
+
+                const content = files[fileName.toLowerCase()];
+                if (content && this.unlockedFiles.includes(fileName.toUpperCase())) {
+                    this.print(`[CONTENIDO]: ${content}`, output);
+                } else {
+                    this.print('Archivo no encontrado o acceso denegado.', output);
+                }
+            },
+
+            unlock(pass, output) {
+                if (pass === this.passwords['SISTEMA']) {
+                    this.unlockedFiles.push('BITACORA.LOG', 'SECRETO.DAT');
+                    this.print('ACCESO CONCEDIDO: Nuevos archivos disponibles.', output);
+                    State.sync += 5;
+                    AudioEngine.playGlitchSound();
+                } else {
+                    this.print('CONTRASEÑA INCORRECTA. Intento registrado.', output);
+                    State.sanity -= 2;
+                    GameEngine.updateUI();
+                }
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL CENTRO DE CONTROL
+         */
+
+        Object.assign(StoryData, {
+            'el_ascensor': {
+                text: "Llegas a un vestíbulo circular. En el centro, un ascensor de cristal y latón parece ser la única vía de escape. A un lado, hay una terminal con una pantalla parpadeante que dice: 'INGRESE PROTOCOLO'.",
+                onEnter: () => {
+                    ThreatEngine.resetThreat(); // Zona segura temporal
+                },
+                choices: [
+                    { text: "Acceder a la terminal", target: 'el_ascensor', onSelect: () => TerminalEngine.open() },
+                    { text: "Inspeccionar el ascensor", target: 'ascensor_bloqueado' },
+                    { text: "Explorar los conductos", target: 'conductos_ventilacion', sanityMod: -10 }
+                ]
+            },
+            'ascensor_bloqueado': {
+                text: "El ascensor está muerto. No hay botones, solo tres ranuras circulares que emiten un tenue zumbido. Necesitas algo que encaje allí.",
+                choices: [
+                    { text: "Volver a la terminal", target: 'el_ascensor' },
+                    { 
+                        text: "Usar Núcleo de Energía", 
+                        target: 'ascensor_activado',
+                        requirement: 'nucleo_energia',
+                        onSelect: () => {
+                            State.inventory = State.inventory.filter(i => i.id !== 'nucleo_energia');
+                            State.flags.add('nucleo_insertado_1');
+                        }
+                    }
+                ]
+            },
+            'conductos_ventilacion': {
+                text: "El metal de los conductos está pegajoso. Al avanzar, escuchas algo que se arrastra detrás de ti. No puedes darte la vuelta.",
+                choices: [
+                    { text: "Avanzar más rápido", target: 'sotano_olvidado', sanityMod: -5 },
+                    { text: "Quedarte quieto y rezar", target: 'muerte_ventilacion', sanityMod: -30 }
+                ]
+            }
+        });
+      /**
+         * ================================================================
+         * PARTE 6: SISTEMA DE COMBATE DE VOLUNTAD (QTE)
+         * El jugador debe sincronizar sus clics para evitar ser
+         * consumido por las anomalías.
+         * ================================================================
+         */
+
+        const BattleEngine = {
+            isActive: false,
+            difficulty: 1,
+            progress: 0,
+            targetProgress: 100,
+            interval: null,
+
+            // Inicia un encuentro hostil
+            startEncounter(difficulty) {
+                this.isActive = true;
+                this.difficulty = difficulty;
+                this.progress = 50; // Empezamos en el medio
+                this.renderBattleUI();
+                this.startDrain();
+                GameEngine.logSystem("ALERTA: Amenaza inminente. ESTABILIZA TU PULSO.");
+            },
+
+            renderBattleUI() {
+                const viewport = document.getElementById('viewport');
+                const battleScreen = document.createElement('div');
+                battleScreen.id = 'battle-overlay';
+                battleScreen.style.cssText = `
+                    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(139, 0, 0, 0.1);
+                    display: flex; flex-direction: column; justify-content: center;
+                    align-items: center; z-index: 1500; backdrop-filter: blur(4px);
+                `;
+
+                battleScreen.innerHTML = `
+                    <div style="text-align:center; margin-bottom: 20px;">
+                        <h2 class="glitch-active" style="color:white; letter-spacing:10px;">RESISTE</h2>
+                        <p style="font-size:0.8rem;">Haz clic rítmicamente para mantener la voluntad</p>
+                    </div>
+                    <div style="width: 300px; height: 20px; border: 2px solid white; position: relative;">
+                        <div id="battle-bar" style="width: 50%; height: 100%; background: white; transition: width 0.1s;"></div>
+                        <div style="position:absolute; top:0; left:50%; width:2px; height:100%; background:red;"></div>
+                    </div>
+                    <p id="battle-status" style="margin-top:10px; font-size:0.7rem;">ESTADO: INESTABLE</p>
+                `;
+
+                viewport.appendChild(battleScreen);
+                
+                // El clic en cualquier parte de la pantalla aumenta el progreso
+                battleScreen.onclick = () => this.handlePulse();
+            },
+
+            handlePulse() {
+                if (!this.isActive) return;
+                
+                // Cada clic sube el progreso basándose en la dificultad
+                const boost = 12 / this.difficulty;
+                this.progress = Math.min(100, this.progress + boost);
+                this.updateUI();
+                AudioEngine.playGlitchSound();
+
+                if (this.progress >= 95) {
+                    this.win();
+                }
+            },
+
+            startDrain() {
+                // El progreso baja constantemente (la entidad te arrastra)
+                this.interval = setInterval(() => {
+                    const drain = 2 * this.difficulty;
+                    this.progress -= drain;
+                    this.updateUI();
+
+                    if (this.progress <= 0) {
+                        this.lose();
+                    }
+                }, 100);
+            },
+
+            updateUI() {
+                const bar = document.getElementById('battle-bar');
+                const status = document.getElementById('battle-status');
+                if (bar) bar.style.width = `${this.progress}%`;
+                
+                if (this.progress < 30) {
+                    status.innerText = "ESTADO: COLAPSANDO";
+                    status.style.color = "red";
+                } else {
+                    status.innerText = "ESTADO: LUCHANDO";
+                    status.style.color = "white";
+                }
+            },
+
+            win() {
+                this.end(true);
+                GameEngine.logSystem("AMENAZA_RECHAZADA: La voluntad prevalece.");
+                GameEngine.loadScene('victoria_encuentro');
+            },
+
+            lose() {
+                this.end(false);
+                GameEngine.triggerGameOver("Tu mente cedió ante la presión. El vacío te ha reclamado.");
+            },
+
+            end(success) {
+                this.isActive = false;
+                clearInterval(this.interval);
+                const overlay = document.getElementById('battle-overlay');
+                if (overlay) overlay.remove();
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL SÓTANO OLVIDADO
+         * Aquí ocurre el primer combate obligatorio.
+         */
+
+        Object.assign(StoryData, {
+            'sotano_olvidado': {
+                text: "El aire en el sótano sabe a ozono y sangre seca. Entre los escombros de viejos servidores, ves algo que brilla: un NÚCLEO DE ENERGÍA. Pero antes de que puedas tocarlo, el suelo comienza a sangrar sombras.",
+                choices: [
+                    { 
+                        text: "Tomar el Núcleo y prepararse", 
+                        target: 'sotano_olvidado', 
+                        onSelect: () => {
+                            GameEngine.inventoryAdd("Núcleo Energía", "nucleo_energia");
+                            setTimeout(() => BattleEngine.startEncounter(1.5), 1000);
+                        }
+                    },
+                    { text: "Huir hacia los conductos", target: 'conductos_ventilacion', sanityMod: -15 }
+                ]
+            },
+            'victoria_encuentro': {
+                text: "La oscuridad retrocede siseando. El Núcleo de Energía late en tu mano con una calidez antinatural. Sientes que has recuperado una parte de tu propia realidad.",
+                onEnter: () => {
+                    State.sanity += 15;
+                    State.sync += 10;
+                    GameEngine.updateUI();
+                },
+                choices: [
+                    { text: "Regresar al ascensor", target: 'el_ascensor' }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE RENDERIZADO DE DAÑO VISUAL
+         * Añade efectos de "sangre" en los bordes de la pantalla.
+         */
+        const VisualDamage = {
+            update() {
+                const master = document.getElementById('master-container');
+                if (State.sanity < 50) {
+                    const intensity = (50 - State.sanity) / 2;
+                    master.style.border = `${intensity}px solid rgba(139, 0, 0, 0.5)`;
+                    master.style.filter = `sepia(${intensity * 2}%)`;
+                } else {
+                    master.style.border = "2px solid #1a1a1a";
+                    master.style.filter = "none";
+                }
+            }
+        };
+
+        // Inyectar actualización de daño en el loop principal
+        const originalUpdateUI = GameEngine.updateUI;
+        GameEngine.updateUI = function() {
+            originalUpdateUI.call(this);
+            VisualDamage.update();
+        };
+
+        /**
+         * CONTINUARÁ EN LA PARTE 7...
+         * Próximo módulo: El Laberinto de Espejos y Decisiones Morales.
+         */
+      /**
+         * ================================================================
+         * PARTE 7: MOTOR DE DIÁLOGOS Y LABERINTO DE ESPEJOS
+         * Este módulo gestiona la interacción con los "Ecos" (NPCs) 
+         * y la navegación no lineal.
+         * ================================================================
+         */
+
+        const DialogueEngine = {
+            currentEntity: null,
+            
+            // Inicia una conversación con una entidad
+            start(entityID) {
+                this.currentEntity = Entities[entityID];
+                this.renderDialogue('inicio');
+                GameEngine.logSystem(`CONTACTO_ESTABLECIDO: ${entityID.toUpperCase()}`);
+            },
+
+            renderDialogue(nodeID) {
+                const node = this.currentEntity.nodes[nodeID];
+                const viewport = document.getElementById('viewport');
+                const actionPanel = document.getElementById('action-panel');
+                
+                // Limpiamos la pantalla para el diálogo
+                viewport.innerHTML = `<div class="whisper-text" style="text-align:center; color:var(--glitch-cyan);">[${this.currentEntity.name.toUpperCase()}]</div>`;
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message';
+                viewport.appendChild(msgDiv);
+                
+                GameEngine.typeWriter(msgDiv, node.text);
+
+                // Preparamos las respuestas
+                actionPanel.innerHTML = "";
+                node.responses.forEach(res => {
+                    const btn = document.createElement('button');
+                    btn.className = 'action-btn';
+                    btn.style.borderColor = 'var(--glitch-cyan)';
+                    btn.innerText = res.text;
+                    btn.onclick = () => {
+                        if (res.effect) res.effect();
+                        if (res.next === 'exit') {
+                            this.end();
+                        } else {
+                            this.renderDialogue(res.next);
+                        }
+                    };
+                    actionPanel.appendChild(btn);
+                });
+            },
+
+            end() {
+                this.currentEntity = null;
+                GameEngine.loadScene(State.currentScene); // Recargar la escena base
+                GameEngine.logSystem("CONTACTO_FINALIZADO");
+            }
+        };
+
+        /**
+         * DEFINICIÓN DE ENTIDADES
+         */
+        const Entities = {
+            'el_reflejo': {
+                name: "Tu Sombra",
+                nodes: {
+                    'inicio': {
+                        text: "¿Crees que salir de aquí cambiará algo? Llevas este lugar dentro de ti. Cada pared es un recuerdo que intentaste quemar.",
+                        responses: [
+                            { text: "No sé de qué hablas.", next: 'negacion', effect: () => State.sanity -= 5 },
+                            { text: "Dime cómo salir de este pasillo.", next: 'guia' }
+                        ]
+                    },
+                    'negacion': {
+                        text: "Mientes. El aire aquí es espeso porque tú lo hiciste así. Si sigues negándolo, te convertirás en una piedra más de este muro.",
+                        responses: [
+                            { text: "Solo quiero el segundo núcleo.", next: 'comercio' },
+                            { text: "Vete de mi cabeza.", next: 'exit', effect: () => ThreatEngine.level += 20 }
+                        ]
+                    },
+                    'guia': {
+                        text: "Para avanzar, debes dejar de buscar la salida y empezar a buscar la entrada. El segundo núcleo está tras el espejo que no muestra tu cara.",
+                        responses: [
+                            { text: "Entiendo.", next: 'exit' }
+                        ]
+                    },
+                    'comercio': {
+                        text: "Te daré lo que buscas, pero a cambio quiero un recuerdo. Olvidarás cómo suena la voz de tu madre. ¿Aceptas?",
+                        responses: [
+                            { 
+                                text: "Aceptar el trato.", 
+                                next: 'exit', 
+                                effect: () => {
+                                    GameEngine.inventoryAdd("Núcleo Sombrío", "nucleo_energia_2");
+                                    State.sync -= 15;
+                                    GameEngine.updateUI();
+                                }
+                            },
+                            { text: "Jamás.", next: 'exit' }
+                        ]
+                    }
+                }
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL LABERINTO DE ESPEJOS
+         */
+        Object.assign(StoryData, {
+            'laberinto_espejos': {
+                text: "Entras en una sala donde el suelo, el techo y las paredes son cristales pulidos. Miles de versiones de ti mismo te devuelven la mirada. Algunas sonríen cuando tú no lo haces.",
+                onEnter: () => {
+                    VisualFX.triggerDistortion();
+                    document.getElementById('master-container').style.backdropFilter = "invert(0.2)";
+                },
+                choices: [
+                    { text: "Mirar fijamente a un reflejo", target: 'laberinto_espejos', onSelect: () => DialogueEngine.start('el_reflejo') },
+                    { text: "Romper un espejo", target: 'espejo_roto', sanityMod: -20 },
+                    { text: "Caminar con los ojos cerrados", target: 'camino_ciego' }
+                ]
+            },
+            'espejo_roto': {
+                text: "El cristal estalla. Pero no hay una pared detrás, solo un vacío infinito que comienza a succionar el aire de la habitación. Tus manos sangran cristales negros.",
+                choices: [
+                    { text: "Tratar de tapar la grieta", target: 'muerte_vacio', sanityMod: -50 },
+                    { text: "Huir antes de que sea tarde", target: 'laberinto_espejos' }
+                ]
+            },
+            'camino_ciego': {
+                text: "Confías en tu tacto. Avanzas sintiendo el frío del cristal bajo tus palmas. De repente, dejas de sentir el suelo. Estás flotando en una quietud absoluta.",
+                choices: [
+                    { text: "Abrir los ojos", target: 'habitacion_blanca' },
+                    { text: "Seguir avanzando en la nada", target: 'final_oculto_1', requirement: 'objeto_misterioso' }
+                ]
+            },
+            'habitacion_blanca': {
+                text: "La luz es cegadora. Estás en una oficina moderna, impecable. El olor a hospital es abrumador. En un escritorio, hay un informe con tu nombre.",
+                choices: [
+                    { text: "Leer el informe", target: 'revelacion_1' },
+                    { text: "Buscar una salida de este sueño", target: 'laberinto_espejos', sanityMod: -10 }
+                ]
+            }
+        });
+
+        // Efecto de parpadeo de reflejos
+        setInterval(() => {
+            if (State.currentScene === 'laberinto_espejos') {
+                const master = document.getElementById('master-container');
+                master.style.opacity = Math.random() > 0.95 ? "0.7" : "1";
+            }
+        }, 100);
+      /**
+         * ================================================================
+         * PARTE 8: SISTEMA DE CÁMARAS DE SEGURIDAD (CCTV)
+         * Permite observar otras estancias y gestionar la energía
+         * para evitar encuentros fatales.
+         * ================================================================
+         */
+
+        const CCTVEngine = {
+            isActive: false,
+            currentCam: 1,
+            energy: 100,
+            monsterLocation: 3, // La cámara donde acecha la entidad
+            
+            init() {
+                this.isActive = true;
+                this.energy = 100;
+                this.renderUI();
+                this.startEnergyDrain();
+                GameEngine.logSystem("SISTEMA_VIGILANCIA: En línea. Monitoree_Sectores.");
+            },
+
+            renderUI() {
+                const viewport = document.getElementById('viewport');
+                const actionPanel = document.getElementById('action-panel');
+                
+                actionPanel.style.display = 'none'; // Ocultamos botones de acción
+
+                const cctvOverlay = document.createElement('div');
+                cctvOverlay.id = 'cctv-interface';
+                cctvOverlay.style.cssText = `
+                    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                    background: #001a00; color: #0f0; font-family: 'Courier New';
+                    display: grid; grid-template-rows: 40px 1fr 60px; z-index: 1800;
+                    border: 10px solid #111;
+                `;
+
+                cctvOverlay.innerHTML = `
+                    <div style="padding: 10px; display: flex; justify-content: space-between; background: #002200;">
+                        <span>CAM_0${this.currentCam} - SECTOR_${this.getSectorName(this.currentCam)}</span>
+                        <span id="cctv-energy">ENERGÍA: ${Math.floor(this.energy)}%</span>
+                    </div>
+                    <div id="cam-feed" style="position:relative; overflow:hidden; background:#000;">
+                        <div id="static-effect" style="position:absolute; width:100%; height:100%; opacity:0.2; pointer-events:none; background:url('https://www.transparenttextures.com/patterns/stardust.png');"></div>
+                        <div id="cam-content" style="padding:40px; text-shadow: 0 0 10px #0f0;"></div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px; padding:10px; background:#002200;">
+                        <button class="action-btn" style="color:#0f0; border-color:#0f0;" onclick="CCTVEngine.switchCam(1)">CAM 1</button>
+                        <button class="action-btn" style="color:#0f0; border-color:#0f0;" onclick="CCTVEngine.switchCam(2)">CAM 2</button>
+                        <button class="action-btn" style="color:#0f0; border-color:#0f0;" onclick="CCTVEngine.switchCam(3)">CAM 3</button>
+                        <button class="action-btn" style="color:#0f0; border-color:#0f0;" onclick="CCTVEngine.exit()">DESCONECTAR</button>
+                    </div>
+                `;
+
+                viewport.appendChild(cctvOverlay);
+                this.updateCamContent();
+            },
+
+            switchCam(id) {
+                this.currentCam = id;
+                AudioEngine.playGlitchSound();
+                this.updateCamContent();
+                // Al cambiar de cámara, hay una posibilidad de que el monstruo se mueva
+                if (Math.random() > 0.6) this.moveMonster();
+            },
+
+            updateCamContent() {
+                const feed = document.getElementById('cam-content');
+                const energyDisplay = document.getElementById('cctv-energy');
+                if (energyDisplay) energyDisplay.innerText = `ENERGÍA: ${Math.floor(this.energy)}%`;
+
+                let html = "";
+                if (this.currentCam === this.monsterLocation) {
+                    html = `<h1 class="glitch-active" style="font-size:3rem; color:red;">DETECCIÓN CRÍTICA</h1>
+                            <p>Una masa de tejido negro se retuerce en el centro del pasillo. Parece estar esperando...</p>`;
+                    State.sanity -= 0.5; // Mirarlo drena cordura
+                } else {
+                    html = `<h3>SECTOR DESPEJADO</h3><p>No se detectan anomalías térmicas en este cuadrante.</p>`;
+                }
+                
+                feed.innerHTML = html;
+            },
+
+            getSectorName(id) {
+                const names = ["PASILLO_NORTE", "GENERADOR", "SALA_QUIRÚRGICA"];
+                return names[id - 1];
+            },
+
+            moveMonster() {
+                this.monsterLocation = Math.floor(Math.random() * 3) + 1;
+            },
+
+            startEnergyDrain() {
+                const timer = setInterval(() => {
+                    if (!this.isActive) { clearInterval(timer); return; }
+                    this.energy -= 0.8;
+                    this.updateCamContent();
+
+                    if (this.energy <= 0) {
+                        this.exit();
+                        GameEngine.logSystem("ERROR: Fallo de energía en el sistema de cámaras.");
+                    }
+                }, 1000);
+            },
+
+            exit() {
+                this.isActive = false;
+                const ui = document.getElementById('cctv-interface');
+                if (ui) ui.remove();
+                document.getElementById('action-panel').style.display = 'grid';
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL PISO DE SEGURIDAD
+         */
+        Object.assign(StoryData, {
+            'piso_seguridad': {
+                text: "Llegas a una habitación blindada. Decenas de monitores CRT cubren las paredes, emitiendo una luz verdosa y fría. Aquí es donde observaban a los 'sujetos'.",
+                choices: [
+                    { text: "Sentarse ante la consola de mando", target: 'piso_seguridad', onSelect: () => CCTVEngine.init() },
+                    { text: "Revisar los archivos de la mesa", target: 'archivo_sujetos' },
+                    { text: "Continuar hacia el generador", target: 'generador_sala', requirement: 'acceso_nivel_2' }
+                ]
+            },
+            'archivo_sujetos': {
+                text: "Los documentos detallan experimentos sobre la 'transferencia de consciencia'. Ves una foto de una persona que se parece demasiado a ti. En el pie de foto dice: 'Sujeto Omega - Fallido'.",
+                onEnter: () => {
+                    State.flags.add('acceso_nivel_2');
+                    State.sanity -= 10;
+                },
+                choices: [
+                    { text: "Guardar el informe en silencio", target: 'piso_seguridad' }
+                ]
+            },
+            'generador_sala': {
+                text: "El rugido del generador es ensordecedor. Rayos de estática azul saltan entre las bobinas. Aquí está el tercer y último NÚCLEO DE ENERGÍA.",
+                choices: [
+                    { 
+                        text: "Extraer el tercer Núcleo", 
+                        target: 'emergencia_final', 
+                        onSelect: () => {
+                            GameEngine.inventoryAdd("Núcleo Maestro", "nucleo_energia_3");
+                            ThreatEngine.level = 90; // La entidad se activa al máximo
+                        }
+                    }
+                ]
+            }
+        });
+
+        // Loop de interferencia estática aleatoria
+        setInterval(() => {
+            if (CCTVEngine.isActive) {
+                const static = document.getElementById('static-effect');
+                if (static) static.style.opacity = Math.random() * 0.4;
+            }
+        }, 50);
+      /**
+         * ================================================================
+         * PARTE 9: MOTOR DE INESTABILIDAD Y SECUENCIA DE ASCENSOR
+         * Gestiona el ensamblaje de los núcleos y la distorsión final.
+         * ================================================================
+         */
+
+        const CoreSystem = {
+            insertedCores: 0,
+            isMeltdownActive: false,
+
+            // Inserta un núcleo y verifica el estado
+            insertCore(coreID) {
+                const coreMap = {
+                    'nucleo_energia': "Núcleo de Energía (Físico)",
+                    'nucleo_energia_2': "Núcleo Sombrío (Mental)",
+                    'nucleo_energia_3': "Núcleo Maestro (Espiritual)"
+                };
+
+                if (State.inventory.some(item => item.id === coreID)) {
+                    // Eliminar del inventario
+                    State.inventory = State.inventory.filter(item => item.id !== coreID);
+                    this.insertedCores++;
+                    GameEngine.inventoryUpdateUI(); // Corregimos el nombre del método de la Parte 3
+                    
+                    AudioEngine.playGlitchSound();
+                    GameEngine.logSystem(`NÚCLEO_DETECTADO: ${coreMap[coreID]} instalado.`);
+                    
+                    this.checkStatus();
+                    return true;
+                }
+                return false;
+            },
+
+            checkStatus() {
+                if (this.insertedCores === 3) {
+                    this.triggerMeltdown();
+                } else {
+                    State.sanity -= 5;
+                    VisualFX.triggerDistortion();
+                }
+            },
+
+            triggerMeltdown() {
+                this.isMeltdownActive = true;
+                GameEngine.logSystem("ADVERTENCIA: Inestabilidad de campo. Realidad al 14%.");
+                
+                // Efecto visual de colapso
+                const master = document.getElementById('master-container');
+                master.style.animation = "shake 0.1s infinite";
+                
+                // Inyectar el estilo de vibración si no existe
+                if (!document.getElementById('shake-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'shake-style';
+                    style.innerHTML = `
+                        @keyframes shake {
+                            0% { transform: translate(1px, 1px) rotate(0deg); }
+                            25% { transform: translate(-1px, -2px) rotate(-1deg); }
+                            50% { transform: translate(-3px, 0px) rotate(1deg); }
+                            75% { transform: translate(3px, 2px) rotate(0deg); }
+                            100% { transform: translate(1px, -1px) rotate(1deg); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
+                // Cambiar a la escena del clímax
+                setTimeout(() => {
+                    GameEngine.loadScene('climax_ascensor');
+                }, 2000);
+            }
+        };
+
+        // Corregimos la función de actualización de inventario de la Parte 3 para que sea consistente
+        GameEngine.inventoryUpdateUI = function() {
+            const slots = document.querySelectorAll('.inv-slot');
+            slots.forEach((slot, index) => {
+                if (State.inventory[index]) {
+                    slot.innerText = State.inventory[index].name.charAt(0);
+                    slot.style.color = "var(--glitch-cyan)";
+                    slot.style.boxShadow = "0 0 5px var(--glitch-cyan)";
+                } else {
+                    slot.innerText = "?";
+                    slot.style.color = "#333";
+                    slot.style.boxShadow = "none";
+                }
+            });
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL GRAN CIERRE (FASE 1)
+         */
+        Object.assign(StoryData, {
+            'emergencia_final': {
+                text: "El tercer núcleo vibra con una frecuencia que hace que tus dientes duelan. Las luces del complejo se apagan, reemplazadas por un resplandor negro que emana de las grietas del suelo. Tienes que volver al ascensor. AHORA.",
+                onEnter: () => {
+                    ThreatEngine.startTracking();
+                    ThreatEngine.level = 85; 
+                },
+                choices: [
+                    { text: "Correr por el pasillo colapsando", target: 'camino_retorno_caos' },
+                    { text: "Usar los conductos (Atajo peligroso)", target: 'muerte_ventilacion', sanityMod: -40 }
+                ]
+            },
+            'camino_retorno_caos': {
+                text: "El pasillo ya no es lineal. Las puertas están en el techo y el suelo se siente como carne blanda. Ves la silueta del ascensor al fondo, pero el espacio entre tú y él se estira infinitamente.",
+                choices: [
+                    { text: "Forzar la voluntad y avanzar", target: 'el_ascensor_final', sanityMod: -10 },
+                    { text: "Gritar al vacío que te rodea", target: 'final_locura', sanityMod: -100 }
+                ]
+            },
+            'el_ascensor_final': {
+                text: "Llegas al ascensor. Las tres ranuras brillan con una luz sedienta. Sientes la presencia de la Entidad justo detrás de ti, respirando en tu nuca.",
+                choices: [
+                    { 
+                        text: "Insertar Núcleo Físico", 
+                        target: 'el_ascensor_final', 
+                        onSelect: () => CoreSystem.insertCore('nucleo_energia') 
+                    },
+                    { 
+                        text: "Insertar Núcleo Sombrío", 
+                        target: 'el_ascensor_final', 
+                        onSelect: () => CoreSystem.insertCore('nucleo_energia_2') 
+                    },
+                    { 
+                        text: "Insertar Núcleo Maestro", 
+                        target: 'el_ascensor_final', 
+                        onSelect: () => CoreSystem.insertCore('nucleo_energia_3') 
+                    },
+                    { text: "Mirar atrás", target: 'muerte_figura' }
+                ]
+            },
+            'climax_ascensor': {
+                text: "Las puertas de latón se cierran con un estruendo metálico que silencia al mundo. El ascensor no sube ni baja... empieza a moverse HACIA FUERA de la realidad. A través del cristal, ves el complejo desintegrarse en ceros y unos.",
+                onEnter: () => {
+                    document.body.style.backgroundColor = "white";
+                    document.body.style.transition = "background-color 5s";
+                },
+                choices: [
+                    { text: "Presionar el botón de 'Salida'", target: 'final_bueno', requirement: 'objeto_misterioso' },
+                    { text: "Dejarse llevar por la corriente", target: 'final_neutral' }
+                ]
+            }
+        });
+
+        // Loop de partículas de "error" (Solo en el clímax)
+        setInterval(() => {
+            if (CoreSystem.isMeltdownActive && Math.random() > 0.7) {
+                const p = document.createElement('div');
+                p.style.cssText = `
+                    position: fixed;
+                    width: 20px; height: 2px;
+                    background: var(--glitch-magenta);
+                    top: ${Math.random() * 100}%;
+                    left: ${Math.random() * 100}%;
+                    z-index: 2001;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 200);
+            }
+        }, 50);
