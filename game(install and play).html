@@ -1670,3 +1670,2252 @@
                 setTimeout(() => p.remove(), 200);
             }
         }, 50);
+        /**
+         * ================================================================
+         * PARTE 10: EL ALA QUIRÚRGICA (SECTOR GAMMA)
+         * Introducimos el Sistema de "Ecos de Memoria" y puzles biológicos.
+         * ================================================================
+         */
+
+        const MemorySystem = {
+            sins: [],
+            traumaLevel: 0,
+
+            record(action, impact) {
+                this.sins.push({ action, timestamp: Date.now() });
+                this.traumaLevel += impact;
+                GameEngine.logSystem(`NEURO_REGISTRO: ${action.toUpperCase()} detectado.`);
+                
+                // Si el trauma es alto, el entorno sangra literalmente
+                if (this.traumaLevel > 50) {
+                    VisualFX.bloodRain();
+                }
+            }
+        };
+
+        // Nuevo efecto visual de distorsión orgánica
+        VisualFX.bloodRain = function() {
+            const container = document.getElementById('viewport');
+            const drop = document.createElement('div');
+            drop.style.cssText = `
+                position: absolute; width: 1px; height: 50px;
+                background: linear-gradient(transparent, var(--blood-red));
+                left: ${Math.random() * 100}%; top: -50px;
+                z-index: 5; opacity: 0.6; pointer-events: none;
+            `;
+            container.appendChild(drop);
+            
+            let pos = -50;
+            const fall = setInterval(() => {
+                pos += 5;
+                drop.style.top = pos + 'px';
+                if (pos > container.offsetHeight) {
+                    clearInterval(fall);
+                    drop.remove();
+                }
+            }, 20);
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL ALA QUIRÚRGICA
+         * Un laberinto de decisiones morales y horror corporal.
+         */
+
+        Object.assign(StoryData, {
+            'ala_quirurgica': {
+                text: "El olor a formaldehído es tan fuerte que marea. Camillas oxidadas bloquean el paso. En el centro, una luz de quirófano parpadea sobre un cuerpo cubierto por una sábana... que parece estar respirando.",
+                onEnter: () => {
+                    AudioEngine.playGlitchSound();
+                    State.sync -= 2;
+                },
+                choices: [
+                    { text: "Levantar la sábana", target: 'revelacion_paciente', sanityMod: -15 },
+                    { text: "Buscar suministros médicos", target: 'suministros_sector_gamma' },
+                    { text: "Ignorar el bulto y seguir al depósito", target: 'deposito_cadaveres' }
+                ]
+            },
+            'revelacion_paciente': {
+                text: "No hay un rostro. Solo una pantalla incrustada en el cráneo que muestra tu propio registro de pulsaciones. Una voz sintética dice: '¿Por qué nos dejaste aquí, Omega?'",
+                onEnter: () => MemorySystem.record("Enfrentamiento_Identidad", 20),
+                choices: [
+                    { text: "Desconectar los cables", target: 'ala_quirurgica', sanityMod: -10, addFlag: 'piedad_falsa' },
+                    { text: "Gritar pidiendo perdón", target: 'ala_quirurgica', sanityMod: -5 }
+                ]
+            },
+            'suministros_sector_gamma': {
+                text: "Encuentras un maletín metálico. Dentro hay una jeringa con un líquido azul neón: 'ESTABILIZADOR SINÁPTICO'. Podría salvar tu mente, pero ¿a qué precio?",
+                choices: [
+                    { 
+                        text: "Inyectarse el estabilizador", 
+                        target: 'ala_quirurgica', 
+                        onSelect: () => {
+                            State.sanity = 100;
+                            State.sync -= 30; // Te vuelves más máquina, menos humano
+                            GameEngine.updateUI();
+                            GameEngine.logSystem("SISTEMA: Cordura restaurada. Humanidad degradada.");
+                        }
+                    },
+                    { text: "Dejarlo donde está", target: 'ala_quirurgica' }
+                ]
+            },
+            'deposito_cadaveres': {
+                text: "Cientos de cajones metálicos. Algunos están abiertos. Al fondo, ves una terminal de acceso que requiere un código de 4 dígitos. Hay una nota pegada: 'La suma de tus fracasos'.",
+                choices: [
+                    { text: "Intentar hackear la terminal", onSelect: () => TerminalEngine.open() },
+                    { text: "Revisar los cajones abiertos", target: 'cajon_secreto' }
+                ]
+            },
+            'cajon_secreto': {
+                text: "Dentro de un cajón, encuentras una grabadora de cinta. La etiqueta dice: 'SUJETO OMEGA - DÍA 0'.",
+                choices: [
+                    { 
+                        text: "Reproducir cinta", 
+                        target: 'escuchar_cinta',
+                        onSelect: () => AudioEngine.playGlitchSound()
+                    }
+                ]
+            },
+            'escuchar_cinta': {
+                text: "'...si escuchas esto, ya es tarde. El laberinto no es un lugar, es un software. Para salir, tienes que borrar tu propia memoria...' La cinta se corta con un chirrido agudo.",
+                choices: [
+                    { text: "Guardar la grabadora", target: 'deposito_cadaveres', onSelect: () => GameEngine.inventoryAdd("Grabadora", "cinta_lore") }
+                ]
+            }
+        });
+
+        // Loop de "Susurros de Conciencia"
+        setInterval(() => {
+            if (State.currentScene.includes('ala') && Math.random() > 0.9) {
+                const whisper = document.createElement('div');
+                whisper.innerText = "TE ESTAMOS OBSERVANDO";
+                whisper.className = 'whisper-text';
+                whisper.style.cssText = `
+                    position: absolute; 
+                    top: ${Math.random() * 80}%; 
+                    left: ${Math.random() * 80}%;
+                    color: rgba(255,0,0,0.3);
+                    font-size: 0.7rem;
+                    pointer-events: none;
+                `;
+                document.getElementById('viewport').appendChild(whisper);
+                setTimeout(() => whisper.remove(), 2000);
+            }
+        }, 4000);
+        /**
+         * ================================================================
+         * PARTE 11: EL NÚCLEO DE DATOS (THE VOID)
+         * El corazón del software. Aquí la interfaz se vuelve hostil
+         * y los datos se corrompen en tiempo real.
+         * ================================================================
+         */
+
+        const VoidEngine = {
+            corruptionLevel: 0,
+            isActive: false,
+
+            init() {
+                this.isActive = true;
+                this.corruptionLevel = 100 - State.sync;
+                this.applyGlitchStyles();
+                GameEngine.logSystem("ADVERTENCIA: Accediendo a sectores de memoria no paginada.");
+            },
+
+            applyGlitchStyles() {
+                if (!this.isActive) return;
+                
+                // Invertir aleatoriamente elementos de la UI
+                const buttons = document.querySelectorAll('.action-btn');
+                buttons.forEach(btn => {
+                    if (Math.random() > 0.7) {
+                        btn.style.transform = `rotate(${Math.random() * 4 - 2}deg) scale(${0.95 + Math.random() * 0.1})`;
+                        btn.style.filter = "hue-rotate(90deg)";
+                    }
+                });
+
+                if (this.corruptionLevel > 50) {
+                    document.getElementById('viewport').style.transform = `skewX(${Math.random() * 2 - 1}deg)`;
+                }
+            },
+
+            // Simula una "fuga de memoria" visual
+            spawnDataGhost() {
+                const ghost = document.createElement('div');
+                const words = ["NULL", "VOID", "0x0000FF", "SIGABRT", "OVERFLOW"];
+                ghost.innerText = words[Math.floor(Math.random() * words.length)];
+                ghost.style.cssText = `
+                    position: absolute;
+                    left: ${Math.random() * 90}%;
+                    top: ${Math.random() * 90}%;
+                    color: rgba(0, 255, 255, 0.4);
+                    font-family: monospace;
+                    font-size: ${Math.random() * 2 + 0.5}rem;
+                    z-index: 1;
+                    pointer-events: none;
+                    filter: blur(1px);
+                `;
+                document.getElementById('viewport').appendChild(ghost);
+                setTimeout(() => ghost.remove(), 500);
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL NÚCLEO DE DATOS
+         */
+
+        Object.assign(StoryData, {
+            'nucleo_datos': {
+                text: "El pasillo del ala quirúrgica se disuelve en una rejilla de luz blanca sobre un fondo negro infinito. No hay paredes, solo bloques de datos flotantes que zumban como un enjambre de insectos eléctricos.",
+                onEnter: () => {
+                    VoidEngine.init();
+                    AudioEngine.playGlitchSound();
+                },
+                choices: [
+                    { text: "Acceder al Registro Maestro", target: 'registro_maestro' },
+                    { text: "Intentar reconstruir tu nombre", target: 'reconstruccion_identidad', sanityMod: -10 },
+                    { text: "Saltar al vacío de datos", target: 'final_oculto_data', requirement: 'cinta_lore' }
+                ]
+            },
+            'registro_maestro': {
+                text: "Una consola gigante flota ante ti. Los archivos contienen la vida de miles de versiones de ti mismo. Todos terminaron aquí. La pantalla muestra un botón rojo: 'PURGAR_SISTEMA'.",
+                choices: [
+                    { 
+                        text: "Ejecutar Purga (Borrar todo)", 
+                        target: 'nucleo_datos', 
+                        onSelect: () => {
+                            State.sync = 0;
+                            State.sanity = 100;
+                            GameEngine.logSystem("SISTEMA_REINICIADO: Identidad borrada.");
+                            VisualFX.triggerDistortion();
+                        }
+                    },
+                    { text: "Buscar el archivo 'OMEGA_REAL.EXE'", target: 'archivo_omega' }
+                ]
+            },
+            'reconstruccion_identidad': {
+                text: "Tratas de recordar tu cara, pero los datos parpadean. Ves fragmentos: una casa de campo, un accidente de coche, una oficina gris... Ninguno se siente real. El sistema te ofrece un recuerdo genérico.",
+                choices: [
+                    { text: "Aceptar el recuerdo falso", target: 'nucleo_datos', sanityMod: +20, effect: () => State.sync -= 10 },
+                    { text: "Rechazar la mentira", target: 'nucleo_datos', sanityMod: -20 }
+                ]
+            },
+            'archivo_omega': {
+                text: "El archivo está protegido por un cifrado de 128 bits. 'Si abres esto, la simulación terminará, pero no habrá nada afuera para recibirte'.",
+                choices: [
+                    { text: "Forzar apertura", target: 'final_revelacion_total', requirement: 'llave_hueso' },
+                    { text: "Retroceder al laberinto", target: 'laberinto_espejos' }
+                ]
+            },
+            'final_revelacion_total': {
+                text: "El código se rompe. Ves el escritorio de una computadora gigante. Carpetas tituladas 'PROYECTO_INFIERNO'. Tu existencia es un proceso de 450MB que se está quedando sin memoria.",
+                choices: [
+                    { text: "Cerrar el programa", onSelect: () => EndingEngine.execute('FINAL_CORRUPTO') }
+                ]
+            }
+        });
+
+        // Loop de fragmentación visual
+        setInterval(() => {
+            if (VoidEngine.isActive) {
+                VoidEngine.spawnDataGhost();
+                if (Math.random() > 0.9) {
+                    VoidEngine.applyGlitchStyles();
+                }
+            }
+        }, 1000);
+
+        /**
+         * SISTEMA DE NOTIFICACIONES CORRUPTAS
+         * Mensajes aleatorios que aparecen en el log del sistema
+         * para desorientar al jugador.
+         */
+        const CorruptLog = {
+            messages: [
+                "ERROR: La consciencia no responde.",
+                "AVISO: Puntero nulo en el sector recuerdos.",
+                "TRAUMA_OVERFLOW: Limpiando búfer emocional...",
+                "Sujeto Omega detectado fuera de límites.",
+                "¿Todavía crees que tienes un cuerpo?"
+            ],
+            start() {
+                setInterval(() => {
+                    if (Math.random() > 0.85) {
+                        const msg = this.messages[Math.floor(Math.random() * this.messages.length)];
+                        GameEngine.logSystem(msg);
+                    }
+                }, 12000);
+            }
+        };
+
+        CorruptLog.start();
+        /**
+         * ================================================================
+         * PARTE 12: LOS JARDINES DE SILICIO (GRAVEDAD INVERSA)
+         * El área donde la arquitectura lógica se vuelve botánica.
+         * Manipulación de CSS Transform para alterar la percepción.
+         * ================================================================
+         */
+
+        const GravityEngine = {
+            isInverted: false,
+            
+            toggle(state) {
+                const master = document.getElementById('master-container');
+                const viewport = document.getElementById('viewport');
+                
+                if (state) {
+                    this.isInverted = true;
+                    master.style.transform = "rotate(180deg)";
+                    // Re-invertimos el texto para que sea legible pero incómodo
+                    viewport.style.transform = "rotate(180deg)";
+                    GameEngine.logSystem("ERROR_GRAVITATORIO: Vector de red invertido.");
+                } else {
+                    this.isInverted = false;
+                    master.style.transform = "none";
+                    viewport.style.transform = "none";
+                }
+            }
+        };
+
+        const PulseSystem = {
+            interval: null,
+            
+            start() {
+                this.interval = setInterval(() => {
+                    const bg = document.getElementById('master-container');
+                    const intensity = 105 - State.sanity;
+                    bg.style.transition = "background 0.5s ease";
+                    
+                    // Efecto de latido: de negro a un rojo muy oscuro
+                    bg.style.background = `radial-gradient(circle, #0a0a0a 0%, rgb(${intensity/2}, 0, 0) 100%)`;
+                    
+                    setTimeout(() => {
+                        bg.style.background = "radial-gradient(circle, #0a0a0a 0%, #000 100%)";
+                    }, 500);
+                }, 2000);
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: LOS JARDINES DE SILICIO
+         */
+
+        Object.assign(StoryData, {
+            'jardines_silicio': {
+                text: "Te encuentras en una cúpula inmensa. Del techo cuelgan cables que terminan en flores de fibra óptica. El polen aquí es estática pura que te eriza el vello de los brazos. Extrañamente, sientes que el suelo ya no está bajo tus pies.",
+                onEnter: () => {
+                    GravityEngine.toggle(true);
+                    PulseSystem.start();
+                },
+                choices: [
+                    { text: "Escalar las raíces de cable", target: 'copa_datos', sanityMod: -5 },
+                    { text: "Recoger una flor de datos", target: 'jardines_silicio', 
+                      onSelect: () => GameEngine.inventoryAdd("Flor de Fibra", "item_datos") },
+                    { text: "Caminar por el 'techo'", target: 'salida_jardines' }
+                ]
+            },
+            'copa_datos': {
+                text: "Desde aquí arriba, ves que los jardines forman un patrón. Es un código QR gigante grabado en la arquitectura. Al mirarlo fijamente, tu mente descarga información que no pediste.",
+                onEnter: () => {
+                    State.sync += 15;
+                    VisualFX.showFlashback();
+                },
+                choices: [
+                    { text: "Bajar con cuidado", target: 'jardines_silicio' },
+                    { text: "Dejarse caer", target: 'muerte_caida', sanityMod: -100 }
+                ]
+            },
+            'salida_jardines': {
+                text: "La gravedad vuelve a su ser de golpe. Caes sobre un suelo de metal frío. Frente a ti, una puerta de cristal muestra el rótulo: 'DEPARTAMENTO DE PSICOLOGÍA APLICADA'.",
+                onEnter: () => {
+                    GravityEngine.toggle(false);
+                },
+                choices: [
+                    { text: "Entrar en el Departamento", target: 'sala_terapia' },
+                    { text: "Volver al jardín", target: 'jardines_silicio' }
+                ]
+            },
+            'sala_terapia': {
+                text: "Una habitación acogedora. Dos sillones de cuero, una chimenea que emite un calor digital y un test de Rorschach en la pared que parece moverse.",
+                choices: [
+                    { text: "Sentarse a descansar", target: 'descanso_falso', sanityMod: +10 },
+                    { text: "Analizar las manchas de la pared", target: 'rorschach_test' }
+                ]
+            },
+            'rorschach_test': {
+                text: "La mancha toma la forma de la persona que más extrañas. Te susurra que este lugar no es una prisión, sino un refugio que tú mismo pediste construir.",
+                choices: [
+                    { text: "Aceptar la culpa", target: 'sala_terapia', addFlag: 'conciencia_despierta' },
+                    { text: "Negar la vision", target: 'sala_terapia', sanityMod: -15 }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE RENDERIZADO DE PARTICULAS DE POLEN (ESTÁTICA)
+         */
+        const StaticPollen = {
+            spawn() {
+                if (State.currentScene !== 'jardines_silicio') return;
+                const p = document.createElement('div');
+                p.style.cssText = `
+                    position: absolute;
+                    width: 2px; height: 2px;
+                    background: var(--glitch-cyan);
+                    left: ${Math.random() * 100}%;
+                    top: ${Math.random() * 100}%;
+                    opacity: ${Math.random()};
+                    pointer-events: none;
+                    box-shadow: 0 0 2px var(--glitch-cyan);
+                `;
+                document.getElementById('viewport').appendChild(p);
+                setTimeout(() => p.remove(), 1500);
+            }
+        };
+
+        setInterval(StaticPollen.spawn, 200);
+        /**
+         * ================================================================
+         * PARTE 13: EL ARCHIVO DE SOMBRAS (CRIPTOGRAFÍA VISUAL)
+         * Implementación de la mecánica de "Visión Profunda" para
+         * encontrar mensajes ocultos en el ruido.
+         * ================================================================
+         */
+
+        const CryptoEngine = {
+            isScanning: false,
+            discoveredSecrets: 0,
+
+            // Activa el filtro de revelación
+            toggleScanner(active) {
+                const viewport = document.getElementById('viewport');
+                const crt = document.querySelector('.crt-overlay');
+                
+                if (active && State.sanity > 10) {
+                    this.isScanning = true;
+                    viewport.style.filter = "contrast(5) brightness(0.5) invert(1)";
+                    crt.style.opacity = "0.5";
+                    GameEngine.logSystem("ADVERTENCIA: Escaneo sináptico activo. Drenando cordura...");
+                    this.drainSanity();
+                } else {
+                    this.isScanning = false;
+                    viewport.style.filter = "none";
+                    crt.style.opacity = "1";
+                }
+            },
+
+            drainSanity() {
+                if (!this.isScanning) return;
+                State.sanity -= 0.2;
+                GameEngine.updateUI();
+                if (State.sanity <= 5) this.toggleScanner(false);
+                setTimeout(() => this.drainSanity(), 100);
+            },
+
+            // Genera texto que solo es legible con el scanner activo
+            renderHiddenText(visibleText, hiddenContent) {
+                return `
+                    <div class="crypto-container">
+                        <span class="normal-text">${visibleText}</span>
+                        <span class="hidden-text" style="opacity: 0; color: red; font-weight: bold;">
+                            [${hiddenContent}]
+                        </span>
+                    </div>
+                `;
+            }
+        };
+
+        // Añadimos estilos dinámicos para la criptografía
+        const cryptoStyles = document.createElement('style');
+        cryptoStyles.innerHTML = `
+            .crypto-container { position: relative; display: inline-block; }
+            #viewport[style*="invert(1)"] .hidden-text { 
+                opacity: 1 !important; 
+                animation: flicker 0.1s infinite;
+            }
+            @keyframes flicker {
+                0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.9; }
+            }
+        `;
+        document.head.appendChild(cryptoStyles);
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL ARCHIVO DE SOMBRAS
+         */
+
+        Object.assign(StoryData, {
+            'archivo_sombras': {
+                text: "Estanterías infinitas de carpetas vacías se pierden en la penumbra. El aire está cargado de un zumbido de baja frecuencia. Sientes que las palabras están aquí, pero tus ojos no pueden enfocarlas.",
+                onEnter: () => {
+                    GameEngine.logSystem("SISTEMA: Mantén [SCAN] para ver lo invisible.");
+                },
+                choices: [
+                    { 
+                        text: "Activar Escáner de Realidad", 
+                        target: 'archivo_sombras', 
+                        onSelect: () => CryptoEngine.toggleScanner(true) 
+                    },
+                    { text: "Desactivar Escáner", target: 'archivo_sombras', onSelect: () => CryptoEngine.toggleScanner(false) },
+                    { text: "Investigar el Archivo Central", target: 'archivo_central' },
+                    { text: "Volver al Departamento", target: 'sala_terapia' }
+                ]
+            },
+            'archivo_central': {
+                text: `En el centro hay un pedestal con un documento borroso. ${CryptoEngine.renderHiddenText("Parece un acta de defunción.", "TU PROPIA ACTA DE DEFUNCIÓN - FECHA: MAÑANA")}`,
+                choices: [
+                    { text: "Tocar el documento", target: 'efecto_contacto', sanityMod: -10 },
+                    { text: "Buscar el expediente 'PROYECTO OMEGA'", target: 'expediente_omega' }
+                ]
+            },
+            'expediente_omega': {
+                text: `El expediente está lleno de fotos tachadas. ${CryptoEngine.renderHiddenText("El sujeto muestra signos de resistencia.", "EL SUJETO ESTÁ COPIANDO EL CÓDIGO FUENTE")}`,
+                choices: [
+                    { 
+                        text: "Extraer datos del expediente", 
+                        target: 'archivo_sombras',
+                        onSelect: () => {
+                            GameEngine.inventoryAdd("Fragmento Código", "item_codigo");
+                            State.sync += 20;
+                        }
+                    }
+                ]
+            },
+            'efecto_contacto': {
+                text: "Al tocar el papel, este se deshace en ceniza digital. Una ráfaga de viento inexistente recorre la sala y todas las estanterías se cierran de golpe. Estás atrapado en el centro.",
+                choices: [
+                    { text: "Usar fuerza bruta para salir", target: 'muerte_aplastamiento', sanityMod: -40 },
+                    { text: "Cerrar los ojos y esperar", target: 'archivo_sombras', sanityMod: -5 }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE RENDERIZADO DE SOMBRAS MÓVILES
+         * Sombras que cruzan el viewport ocasionalmente.
+         */
+        const ShadowFX = {
+            spawn() {
+                if (Math.random() > 0.95) {
+                    const shadow = document.createElement('div');
+                    shadow.style.cssText = `
+                        position: absolute;
+                        width: 150px; height: 100%;
+                        background: linear-gradient(90deg, transparent, rgba(0,0,0,0.8), transparent);
+                        left: -200px; top: 0;
+                        z-index: 4;
+                        pointer-events: none;
+                        filter: blur(20px);
+                    `;
+                    document.getElementById('viewport').appendChild(shadow);
+                    
+                    let pos = -200;
+                    const move = setInterval(() => {
+                        pos += 15;
+                        shadow.style.left = pos + 'px';
+                        if (pos > window.innerWidth) {
+                            clearInterval(move);
+                            shadow.remove();
+                        }
+                    }, 30);
+                }
+            }
+        };
+
+        setInterval(ShadowFX.spawn, 2000);
+        /**
+         * ================================================================
+         * PARTE 14: EL CORREDOR DE LOS MIL ERRORES
+         * Simulación de colapso de memoria y recursión infinita.
+         * ================================================================
+         */
+
+        const OverflowEngine = {
+            stackLevel: 0,
+            maxStack: 15,
+            isOverflowing: false,
+
+            increment() {
+                this.stackLevel++;
+                if (this.stackLevel >= this.maxStack) {
+                    this.triggerOverflow();
+                }
+                this.updateUI();
+            },
+
+            updateUI() {
+                const log = document.getElementById('event-log');
+                if (this.stackLevel > 10) {
+                    log.style.color = "var(--glitch-magenta)";
+                    log.innerText = `> CRITICAL_STACK_LOAD: ${this.stackLevel}/${this.maxStack}`;
+                }
+            },
+
+            triggerOverflow() {
+                this.isOverflowing = true;
+                const viewport = document.getElementById('viewport');
+                
+                // Efecto de duplicación recursiva (Espejo de código)
+                const clone = viewport.cloneNode(true);
+                clone.style.position = "absolute";
+                clone.style.opacity = "0.3";
+                clone.style.top = "10px";
+                clone.style.left = "10px";
+                clone.style.pointerEvents = "none";
+                clone.id = "viewport-clone";
+                document.getElementById('master-container').appendChild(clone);
+
+                GameEngine.logSystem("ERROR_GRAVE: Desbordamiento de pila en sector 0x000F");
+                AudioEngine.playGlitchSound();
+            },
+
+            purge() {
+                this.stackLevel = 0;
+                this.isOverflowing = false;
+                const clone = document.getElementById('viewport-clone');
+                if (clone) clone.remove();
+                GameEngine.logSystem("SISTEMA: Caché de memoria purgado con éxito.");
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL CORREDOR DE LOS ERRORES
+         */
+
+        Object.assign(StoryData, {
+            'corredor_errores': {
+                text: "Este pasillo no debería existir. Las paredes están hechas de líneas de texto que se desplazan a gran velocidad. El suelo desaparece por momentos, dejando ver el vacío del motor de renderizado.",
+                onEnter: () => {
+                    OverflowEngine.increment();
+                    if (State.sanity < 40) VisualFX.triggerDistortion();
+                },
+                choices: [
+                    { text: "Intentar caminar sobre el código", target: 'corredor_errores', 
+                      onSelect: () => OverflowEngine.increment() },
+                    { text: "Cerrar procesos innecesarios (Purgar)", target: 'corredor_errores', 
+                      onSelect: () => OverflowEngine.purge() },
+                    { text: "Saltar a una excepción de memoria", target: 'sala_vacia', requirement: 'item_codigo' }
+                ]
+            },
+            'sala_vacia': {
+                text: "Has caído en una sala blanca, sin texturas ni sombras. Solo hay un cubo negro en el centro que pulsa con un brillo púrpura. Es el 'Garbage Collector' de tu realidad.",
+                choices: [
+                    { 
+                        text: "Tocar el cubo (Borrar trauma)", 
+                        target: 'final_oculto_data',
+                        onSelect: () => {
+                            State.sanity = 100;
+                            State.sync -= 50; // Pierdes casi toda tu conexión humana
+                        }
+                    },
+                    { text: "Huir de la nada", target: 'el_ascensor' }
+                ]
+            },
+            'muerte_aplastamiento': {
+                text: "Los muros de datos se cierran. No es espacio físico lo que te aplasta, es la cantidad de información. Tu mente no puede procesar tantos gigabytes de dolor por segundo.",
+                choices: [
+                    { text: "REINICIAR_PROCESO", onSelect: () => location.reload() }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE RENDERIZADO DE "LEAK" DE TEXTO
+         * Genera caracteres aleatorios que caen por la pantalla.
+         */
+        const MatrixFX = {
+            chars: "01ABCDEF-/.+*",
+            spawn() {
+                if (State.currentScene !== 'corredor_errores') return;
+                
+                const drop = document.createElement('div');
+                drop.innerText = this.chars.charAt(Math.floor(Math.random() * this.chars.length));
+                drop.style.cssText = `
+                    position: absolute;
+                    left: ${Math.random() * 100}%;
+                    top: -20px;
+                    color: #0f0;
+                    font-family: monospace;
+                    font-size: 0.8rem;
+                    z-index: 10;
+                    pointer-events: none;
+                    text-shadow: 0 0 5px #0f0;
+                `;
+                document.getElementById('viewport').appendChild(drop);
+                
+                let pos = -20;
+                const fall = setInterval(() => {
+                    pos += 8;
+                    drop.style.top = pos + 'px';
+                    if (pos > 500) {
+                        clearInterval(fall);
+                        drop.remove();
+                    }
+                }, 50);
+            }
+        };
+
+        setInterval(() => MatrixFX.spawn(), 150);
+
+        /**
+         * MONITOR DE INTEGRIDAD DE DATOS (RELIABILITY MONITOR)
+         * Cambia el color de la UI basándose en la estabilidad.
+         */
+        const ReliabilityMonitor = {
+            check() {
+                const root = document.documentElement;
+                if (OverflowEngine.isOverflowing) {
+                    root.style.setProperty('--terminal-green', '#ff00ff');
+                    root.style.setProperty('--glitch-cyan', '#ffff00');
+                } else {
+                    root.style.setProperty('--terminal-green', '#00ff41');
+                    root.style.setProperty('--glitch-cyan', '#00f3ff');
+                }
+            }
+        };
+
+        setInterval(ReliabilityMonitor.check, 1000);
+        /**
+         * ================================================================
+         * PARTE 15: TEATRO DE MARIONETAS (POSESIÓN DE ECOS)
+         * Permite controlar entidades externas para resolver puzles
+         * de entorno mediante un sistema de "Proyección Astral".
+         * ================================================================
+         */
+
+        const PuppetEngine = {
+            isProjecting: false,
+            activePuppet: null,
+            timer: null,
+            timeLeft: 0,
+
+            // Inicia la proyección en un cuerpo ajeno
+            project(puppetID) {
+                if (State.sanity < 20) {
+                    GameEngine.logSystem("ERROR: Cordura insuficiente para proyección estable.");
+                    return;
+                }
+
+                this.isProjecting = true;
+                this.activePuppet = puppetID;
+                this.timeLeft = 30; // 30 segundos de control
+                
+                const viewport = document.getElementById('viewport');
+                viewport.classList.add('astral-mode');
+                
+                // Efecto visual de túnel
+                VisualFX.triggerDistortion();
+                AudioEngine.playGlitchSound();
+                
+                this.startTimer();
+                GameEngine.loadScene(`puppet_${puppetID}_start`);
+                GameEngine.logSystem(`CONEXIÓN_ESTABLECIDA: Controlando ECO_${puppetID}...`);
+            },
+
+            startTimer() {
+                this.timer = setInterval(() => {
+                    this.timeLeft--;
+                    if (this.timeLeft <= 0) {
+                        this.stop();
+                    } else {
+                        // Actualizar UI de tiempo si fuera necesario
+                        if (this.timeLeft < 10) AudioEngine.playGlitchSound();
+                    }
+                }, 1000);
+            },
+
+            stop() {
+                clearInterval(this.timer);
+                this.isProjecting = false;
+                this.activePuppet = null;
+                document.getElementById('viewport').classList.remove('astral-mode');
+                
+                GameEngine.logSystem("DESCONEXIÓN: Regresando al cuerpo host.");
+                GameEngine.loadScene(State.currentScene); // Volver a donde estábamos
+                State.sanity -= 10;
+                GameEngine.updateUI();
+            }
+        };
+
+        // Estilos para el modo astral
+        const puppetStyles = document.createElement('style');
+        puppetStyles.innerHTML = `
+            .astral-mode {
+                filter: sepia(1) hue-rotate(200deg) saturate(2) !important;
+                border: 5px double var(--glitch-cyan) !important;
+                animation: pulse-astral 2s infinite;
+            }
+            @keyframes pulse-astral {
+                0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; }
+            }
+        `;
+        document.head.appendChild(puppetStyles);
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL TEATRO DE MARIONETAS
+         */
+
+        Object.assign(StoryData, {
+            'sala_marionetas': {
+                text: "Una habitación circular llena de maniquíes que cuelgan del techo por cables de red. En el centro, una consola permite 'saltar' a la conciencia de un técnico que trabajó aquí hace décadas.",
+                choices: [
+                    { 
+                        text: "Proyectarse en el Técnico (Eco-01)", 
+                        onSelect: () => PuppetEngine.project('tecnico') 
+                    },
+                    { text: "Explorar los maniquíes", target: 'maniquies_detalle' },
+                    { text: "Regresar al Corredor de Errores", target: 'corredor_errores' }
+                ]
+            },
+            'maniquies_detalle': {
+                text: "Al tocarlos, notas que su piel no es plástico, sino una amalgama de papel impreso con logs de errores del sistema. Uno de ellos tiene tu nombre en la etiqueta de la muñeca.",
+                choices: [
+                    { text: "Arrancar la etiqueta", target: 'sala_marionetas', addFlag: 'etiqueta_omega' },
+                    { text: "Alejarse", target: 'sala_marionetas' }
+                ]
+            },
+
+            // ESCENAS DE LA MARIONETA (TECNICO)
+            'puppet_tecnico_start': {
+                text: "[MODO_ECO] Estás en el pasado. El pasillo está limpio y las luces funcionan. Tienes una tarjeta de acceso en la mano y escuchas pasos en la oficina de seguridad.",
+                choices: [
+                    { text: "Insertar tarjeta en el terminal de derivación", target: 'puppet_tecnico_exito' },
+                    { text: "Esconderse en las sombras", target: 'puppet_tecnico_start' }
+                ]
+            },
+            'puppet_tecnico_exito': {
+                text: "[MODO_ECO] El terminal acepta la tarjeta. Has desbloqueado el cortafuegos del SECTOR DELTA en el futuro. Sientes que tu conexión se debilita.",
+                onEnter: () => {
+                    State.flags.add('firewall_desactivado');
+                    setTimeout(() => PuppetEngine.stop(), 3000);
+                },
+                choices: []
+            }
+        });
+
+        /**
+         * SISTEMA DE PERSPECTIVA FORZADA
+         * Cambia el zoom del viewport dinámicamente para simular claustrofobia.
+         */
+        const PerspectiveEngine = {
+            setZoom(level) {
+                const viewport = document.getElementById('viewport');
+                viewport.style.transition = "transform 2s ease-in-out";
+                viewport.style.transform = `scale(${level})`;
+            }
+        };
+
+        // Evento aleatorio de zoom basado en la tensión
+        setInterval(() => {
+            if (State.currentScene === 'sala_marionetas') {
+                const zoom = 0.9 + Math.random() * 0.2;
+                PerspectiveEngine.setZoom(zoom);
+            }
+        }, 5000);
+
+        /**
+         * LÓGICA DE ACTUALIZACIÓN DE ESTADO (TURNOS)
+         * Registramos cada acción para alimentar el sistema de trauma.
+         */
+        const originalHandleChoicePuppet = GameEngine.handleChoice;
+        GameEngine.handleChoice = function(choice) {
+            if (this.isWriting) return;
+            
+            // Si estamos en modo puppet, las acciones no consumen cordura del host
+            if (PuppetEngine.isProjecting) {
+                State.turnCount++;
+                GameEngine.loadScene(choice.target);
+                return;
+            }
+
+            originalHandleChoicePuppet.call(this, choice);
+        };
+        /**
+         * ================================================================
+         * PARTE 16: SECTOR DELTA (ZONA DE CUARENTENA)
+         * Introducción de puzles de red y el Virus de Interfaz (UI-Virus).
+         * ================================================================
+         */
+
+        const NetworkEngine = {
+            ports: [false, false, false, false],
+            virusActive: false,
+            
+            togglePort(index) {
+                if (this.virusActive) {
+                    // El virus sabotea la elección invirtiendo el índice
+                    index = (index + 2) % 4;
+                }
+                
+                this.ports[index] = !this.ports[index];
+                AudioEngine.playGlitchSound();
+                this.checkSequence();
+                this.renderPorts();
+            },
+
+            renderPorts() {
+                const display = document.getElementById('port-status');
+                if (display) {
+                    display.innerHTML = this.ports.map((p, i) => 
+                        `<span style="color:${p ? 'var(--glitch-cyan)' : '#333'}"> [P-0${i}] </span>`
+                    ).join('');
+                }
+            },
+
+            checkSequence() {
+                // Secuencia requerida: [True, False, True, True]
+                const win = this.ports[0] && !this.ports[1] && this.ports[2] && this.ports[3];
+                if (win) {
+                    GameEngine.logSystem("ACCESO_CONCEDIDO: Cortafuegos del Sector Delta bypass.");
+                    State.flags.add('delta_unlocked');
+                }
+            },
+
+            activateVirus() {
+                this.virusActive = true;
+                const actionPanel = document.getElementById('action-panel');
+                actionPanel.style.animation = "glitch-shuffle 0.5s infinite";
+                
+                // Inyectar animación de barajado de UI
+                if (!document.getElementById('virus-styles')) {
+                    const style = document.createElement('style');
+                    style.id = 'virus-styles';
+                    style.innerHTML = `
+                        @keyframes glitch-shuffle {
+                            0% { transform: translateX(0); }
+                            25% { transform: translateX(5px) skewY(1deg); }
+                            50% { transform: translateY(-5px) rotate(1deg); }
+                            100% { transform: translateX(0); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL SECTOR DELTA
+         */
+
+        Object.assign(StoryData, {
+            'sector_delta': {
+                text: "El aire aquí es denso, cargado de partículas de datos quemados. Grandes servidores con luces rojas parpadean en el techo. En la pared principal, cuatro puertos de red físicos esperan una configuración válida.",
+                onEnter: () => {
+                    if (State.flags.has('firewall_desactivado')) {
+                        GameEngine.logSystem("AVISO: Cortafuegos debilitado por acción previa.");
+                    } else {
+                        NetworkEngine.activateVirus();
+                    }
+                },
+                choices: [
+                    { text: "Manipular Puerto 0", target: 'sector_delta', onSelect: () => NetworkEngine.togglePort(0) },
+                    { text: "Manipular Puerto 1", target: 'sector_delta', onSelect: () => NetworkEngine.togglePort(1) },
+                    { text: "Manipular Puerto 2", target: 'sector_delta', onSelect: () => NetworkEngine.togglePort(2) },
+                    { text: "Manipular Puerto 3", target: 'sector_delta', onSelect: () => NetworkEngine.togglePort(3) },
+                    { text: "Entrar al Núcleo Delta", target: 'nucleo_delta', requirement: 'delta_unlocked' }
+                ],
+                renderExtra: () => `<div id="port-status" style="margin-top:10px; font-family:monospace;"></div>`
+            },
+            'nucleo_delta': {
+                text: "Has entrado en la zona de cuarentena. Aquí es donde guardan los 'Segmentos de Alma' que no pudieron ser procesados. Ves un contenedor de cristal con un código binario que fluye como líquido.",
+                choices: [
+                    { 
+                        text: "Extraer Segmento de Alma", 
+                        target: 'sector_delta',
+                        onSelect: () => {
+                            GameEngine.inventoryAdd("Segmento Alma", "alma_fragmento");
+                            State.sanity -= 20;
+                            VisualFX.showFlashback();
+                        }
+                    },
+                    { text: "Destruir el contenedor", target: 'muerte_explosion', sanityMod: -50 }
+                ]
+            }
+        });
+
+        // Modificamos el motor de renderizado para permitir elementos extra
+        const originalTypeWriter = GameEngine.typeWriter;
+        GameEngine.typeWriter = function(element, text, callback) {
+            originalTypeWriter.call(this, element, text, () => {
+                const currentScene = StoryData[State.currentScene];
+                if (currentScene && currentScene.renderExtra) {
+                    element.innerHTML += currentScene.renderExtra();
+                    if (State.currentScene === 'sector_delta') NetworkEngine.renderPorts();
+                }
+                if (callback) callback();
+            });
+        };
+
+        /**
+         * SISTEMA DE DEGRADACIÓN DE AUDIO (STATIC NOISE)
+         * Aumenta el ruido blanco a medida que la sincronización baja.
+         */
+        const NoiseEngine = {
+            noiseNode: null,
+            
+            update() {
+                if (!AudioEngine.isInitialized) return;
+                
+                if (!this.noiseNode) {
+                    const bufferSize = 2 * AudioEngine.ctx.sampleRate;
+                    const noiseBuffer = AudioEngine.ctx.createBuffer(1, bufferSize, AudioEngine.ctx.sampleRate);
+                    const output = noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    this.noiseNode = AudioEngine.ctx.createBufferSource();
+                    this.noiseNode.buffer = noiseBuffer;
+                    this.noiseNode.loop = true;
+                    
+                    this.gainNode = AudioEngine.ctx.createGain();
+                    this.noiseNode.connect(this.gainNode);
+                    this.gainNode.connect(AudioEngine.ctx.destination);
+                    this.noiseNode.start();
+                }
+
+                // Volumen basado en la pérdida de Sincronización
+                const vol = (100 - State.sync) / 1000; 
+                this.gainNode.gain.setValueAtTime(vol, AudioEngine.ctx.currentTime);
+            }
+        };
+
+        // Inyectamos la actualización de ruido en el loop de UI
+        const lastUpdateUI = GameEngine.updateUI;
+        GameEngine.updateUI = function() {
+            lastUpdateUI.call(this);
+            NoiseEngine.update();
+        };
+        /**
+         * ================================================================
+         * PARTE 17: LABORATORIO DE CLONACIÓN (SECTOR ÉPSILON)
+         * Mecánica de síntesis de identidad y puzles de secuenciación.
+         * ================================================================
+         */
+
+        const CloningEngine = {
+            dnaSequence: "",
+            targetSequence: "ATGC-0101",
+            isStabilized: false,
+
+            init() {
+                this.dnaSequence = "____-____";
+                this.renderUI();
+                GameEngine.logSystem("BIOMETRÍA: Iniciando secuencia de síntesis de tejido.");
+            },
+
+            addSequence(char) {
+                // Reemplaza el primer guion bajo que encuentre
+                this.dnaSequence = this.dnaSequence.replace('_', char);
+                this.renderUI();
+                
+                if (!this.dnaSequence.includes('_')) {
+                    this.verify();
+                }
+            },
+
+            verify() {
+                if (this.dnaSequence === this.targetSequence) {
+                    this.isStabilized = true;
+                    State.flags.add('clon_estabilizado');
+                    GameEngine.logSystem("ÉXITO: Sujeto Omega-2 estabilizado. Transferencia posible.");
+                    AudioEngine.playGlitchSound();
+                } else {
+                    GameEngine.logSystem("ERROR CRÍTICO: Secuencia corrupta. Iniciando purga de biomasa.");
+                    State.sanity -= 15;
+                    this.dnaSequence = "____-____"; // Reset
+                    VisualFX.triggerDistortion();
+                }
+                this.renderUI();
+            },
+
+            renderUI() {
+                const container = document.getElementById('cloning-display');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="border: 1px solid var(--glitch-magenta); padding: 10px; background: rgba(255,0,255,0.05);">
+                            <p style="font-size: 0.7rem; color: var(--glitch-magenta);">SECUENCIA_ADN_SINTÉTICO:</p>
+                            <h2 style="letter-spacing: 5px;">${this.dnaSequence}</h2>
+                        </div>
+                    `;
+                }
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL LABORATORIO DE CLONACIÓN
+         */
+
+        Object.assign(StoryData, {
+            'laboratorio_clonacion': {
+                text: "Filas de tanques cilíndricos llenos de un líquido viscoso y brillante. Dentro, formas humanas apenas desarrolladas flotan en un sueño digital. Una consola central muestra un teclado con solo cuatro bases nitrogenadas y dos bits.",
+                onEnter: () => CloningEngine.init(),
+                choices: [
+                    { text: "Ingresar 'A' (Adenina)", target: 'laboratorio_clonacion', onSelect: () => CloningEngine.addSequence('A') },
+                    { text: "Ingresar 'T' (Timina)", target: 'laboratorio_clonacion', onSelect: () => CloningEngine.addSequence('T') },
+                    { text: "Ingresar 'G' (Guanina)", target: 'laboratorio_clonacion', onSelect: () => CloningEngine.addSequence('G') },
+                    { text: "Ingresar 'C' (Citosina)", target: 'laboratorio_clonacion', onSelect: () => CloningEngine.addSequence('C') },
+                    { text: "Ingresar '0'", target: 'laboratorio_clonacion', onSelect: () => CloningEngine.addSequence('0') },
+                    { text: "Ingresar '1'", target: 'laboratorio_clonacion', onSelect: () => CloningEngine.addSequence('1') },
+                    { text: "Ingresar '-' (Separador)", target: 'laboratorio_clonacion', onSelect: () => CloningEngine.addSequence('-') },
+                    { text: "Transferir Conciencia al Clon", target: 'final_transferencia', requirement: 'clon_estabilizado' }
+                ],
+                renderExtra: () => `<div id="cloning-display" style="margin-top:15px;"></div>`
+            },
+            'final_transferencia': {
+                text: "Sientes un tirón violento en la base del cráneo. Tu visión se divide en dos, luego en mil. Por un segundo, te ves a ti mismo fuera del tanque, mirando hacia adentro. Luego, el cristal se rompe.",
+                onEnter: () => {
+                    State.sync = 100; // Restauración total por cambio de host
+                    document.body.style.filter = "grayscale(1) contrast(1.5)";
+                },
+                choices: [
+                    { text: "Caminar con el nuevo cuerpo", target: 'el_ascensor' }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE RENDERIZADO DE BURBUJAS (AMBIENTE DE TANQUE)
+         * Genera círculos ascendentes en el fondo del viewport.
+         */
+        const BubbleFX = {
+            spawn() {
+                if (State.currentScene !== 'laboratorio_clonacion') return;
+                
+                const b = document.createElement('div');
+                const size = Math.random() * 10 + 2;
+                b.style.cssText = `
+                    position: absolute;
+                    width: ${size}px; height: ${size}px;
+                    border: 1px solid rgba(0, 255, 255, 0.3);
+                    border-radius: 50%;
+                    left: ${Math.random() * 100}%;
+                    bottom: -20px;
+                    z-index: 2;
+                    pointer-events: none;
+                `;
+                document.getElementById('viewport').appendChild(b);
+                
+                let pos = 0;
+                const rise = setInterval(() => {
+                    pos += 2;
+                    b.style.bottom = pos + 'px';
+                    b.style.left = (parseFloat(b.style.left) + Math.sin(pos/10)) + '%';
+                    if (pos > 450) {
+                        clearInterval(rise);
+                        b.remove();
+                    }
+                }, 30);
+            }
+        };
+
+        setInterval(BubbleFX.spawn, 400);
+
+        /**
+         * EXTENSIÓN DEL SISTEMA DE LOGS
+         * Añadimos un monitor de "Estrés del Procesador" (CPU Stress)
+         */
+        const CPUStressMonitor = {
+            level: 0,
+            update() {
+                this.level = Math.floor(Math.random() * 20) + (100 - State.sanity);
+                const indicator = document.getElementById('cpu-indicator');
+                if (indicator) {
+                    indicator.style.width = `${this.level}%`;
+                    indicator.style.backgroundColor = this.level > 80 ? 'red' : 'var(--terminal-green)';
+                }
+            }
+        };
+
+        // Añadir el indicador al HTML de la UI base (inyectado dinámicamente)
+        const uiHeader = document.querySelector('.header-status');
+        if (uiHeader) {
+            const stressBar = document.createElement('div');
+            stressBar.style.cssText = "width:100%; height:2px; background:#222; margin-top:5px; overflow:hidden;";
+            stressBar.innerHTML = `<div id="cpu-indicator" style="width:0%; height:100%; transition: width 0.3s;"></div>`;
+            uiHeader.appendChild(stressBar);
+        }
+
+        setInterval(() => CPUStressMonitor.update(), 2000);
+        /**
+         * ================================================================
+         * PARTE 18: CÁMARA DE DESCOMPRESIÓN (SINTONIZADOR DE VOZ)
+         * Implementación de puzles basados en frecuencia y visibilidad.
+         * ================================================================
+         */
+
+        const SignalEngine = {
+            frequency: 0,
+            targetFreq: 88.5,
+            isTuned: false,
+
+            setFrequency(val) {
+                this.frequency = parseFloat(val);
+                this.updateUI();
+                
+                // Si la frecuencia está cerca del objetivo (margen de 0.5)
+                if (Math.abs(this.frequency - this.targetFreq) < 0.5) {
+                    this.isTuned = true;
+                    State.flags.add('frecuencia_correcta');
+                } else {
+                    this.isTuned = false;
+                }
+            },
+
+            updateUI() {
+                const display = document.getElementById('signal-display');
+                if (display) {
+                    const blurVal = Math.abs(this.frequency - this.targetFreq);
+                    display.style.filter = `blur(${blurVal}px)`;
+                    display.style.opacity = 1 - (blurVal / 10);
+                }
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: CÁMARA DE DESCOMPRESIÓN
+         */
+
+        Object.assign(StoryData, {
+            'camara_descompresion': {
+                text: "El aire se vuelve extremadamente delgado. Tus oídos silban. Frente a ti, una radio de válvulas antigua emite una estática que suena como gritos ahogados. Debes encontrar la frecuencia de la 'realidad exterior'.",
+                onEnter: () => {
+                    GameEngine.logSystem("RADIO_LOG: Buscando señal de salida...");
+                },
+                choices: [
+                    { text: "Aumentar Frecuencia (+5)", target: 'camara_descompresion', onSelect: () => SignalEngine.setFrequency(SignalEngine.frequency + 5) },
+                    { text: "Disminuir Frecuencia (-5)", target: 'camara_descompresion', onSelect: () => SignalEngine.setFrequency(SignalEngine.frequency - 5) },
+                    { text: "Ajuste Fino (+0.5)", target: 'camara_descompresion', onSelect: () => SignalEngine.setFrequency(SignalEngine.frequency + 0.5) },
+                    { text: "Escuchar la voz", target: 'voz_arquitecto', requirement: 'frecuencia_correcta' },
+                    { text: "Cruzar la esclusa sin sintonizar", target: 'muerte_vacio_presion', sanityMod: -60 }
+                ],
+                renderExtra: () => `
+                    <div id="signal-box" style="margin-top:20px; text-align:center; border:1px dashed #444; padding:10px;">
+                        <p style="font-size:0.6rem;">FRECUENCIA ACTUAL: ${SignalEngine.frequency.toFixed(1)} MHz</p>
+                        <div id="signal-display" style="font-weight:bold; color:var(--glitch-cyan);">
+                            [ESTÁTICA_ININTELIGIBLE]
+                        </div>
+                    </div>
+                `
+            },
+            'voz_arquitecto': {
+                text: "La voz es calma, familiar... es tu propia voz pero con veinte años más. 'Omega, deja de pelear. No estás escapando de una prisión, estás huyendo de un incendio que tú mismo provocaste'.",
+                choices: [
+                    { text: "¿Quién eres?", target: 'revelacion_arquitecto' },
+                    { text: "Mientes, esto es un software", target: 'voz_arquitecto', onSelect: () => State.sync -= 5 }
+                ]
+            },
+            'revelacion_arquitecto': {
+                text: "La voz suspira. 'Soy el que se quedó afuera para vigilar que no despertaras. Porque despertar significa recordar el accidente. Recordar el fuego'.",
+                choices: [
+                    { text: "Aceptar el recuerdo del fuego", target: 'nucleo_final_reloj', addFlag: 'recuerdo_fuego' },
+                    { text: "Rechazar la verdad", target: 'camara_descompresion', sanityMod: -20 }
+                ]
+            }
+        });
+
+        /**
+         * MECÁNICA DE GHOSTING DE TEXTO (PÉRDIDA DE MEMORIA)
+         * Hace que los párrafos se desvanezcan lentamente.
+         */
+        const MemoryFade = {
+            init() {
+                setInterval(() => {
+                    const msg = document.querySelector('.message p');
+                    if (msg && State.currentScene === 'voz_arquitecto') {
+                        const currentOpacity = parseFloat(window.getComputedStyle(msg).opacity);
+                        if (currentOpacity > 0.1) {
+                            msg.style.opacity = currentOpacity - 0.05;
+                        }
+                    }
+                }, 1000);
+            }
+        };
+
+        MemoryFade.init();
+
+        /**
+         * EFECTO DE CALEFACCIÓN (CALOR DIGITAL)
+         * El viewport se pone rojo y "tiembla" por el calor.
+         */
+        const HeatFX = {
+            intensity: 0,
+            update() {
+                if (State.flags.has('recuerdo_fuego')) {
+                    this.intensity = Math.min(this.intensity + 0.5, 20);
+                    const view = document.getElementById('viewport');
+                    view.style.boxShadow = `inset 0 0 ${this.intensity * 5}px rgba(255, 50, 0, 0.5)`;
+                    view.style.transform = `translate(${Math.random() * 2}px, ${Math.random() * 2}px)`;
+                }
+            }
+        };
+
+        // Inyectar en el loop de frames
+        setInterval(() => HeatFX.update(), 100);
+        /**
+         * ================================================================
+         * PARTE 19: EL NÚCLEO DE LA PARADOJA (COMBATE DE SCRIPTING)
+         * El jugador debe escribir comandos para sobrevivir al borrado.
+         * ================================================================
+         */
+
+        const ParadoxEngine = {
+            isBattleActive: false,
+            enemyPower: 0,
+            playerDefense: 100,
+            requiredCode: "BREAK_LOOP(0x01)",
+            currentInput: "",
+
+            start() {
+                this.isBattleActive = true;
+                this.enemyPower = 0;
+                this.playerDefense = 100;
+                this.renderUI();
+                this.aiAttack();
+                GameEngine.logSystem("SISTEMA: Intrusión detectada. Ejecute BREAK_LOOP(0x01) para estabilizar.");
+            },
+
+            renderUI() {
+                const viewport = document.getElementById('viewport');
+                const battleScreen = document.createElement('div');
+                battleScreen.id = 'paradox-ui';
+                battleScreen.style.cssText = `
+                    position: absolute; top:0; left:0; width:100%; height:100%;
+                    background: rgba(0,0,50,0.8); z-index: 2500;
+                    display: flex; flex-direction: column; padding: 20px;
+                    font-family: 'Courier New', monospace;
+                `;
+
+                battleScreen.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                        <span>INTEGRIDAD_JUGADOR: <span id="p-def">${this.playerDefense}%</span></span>
+                        <span>PROGRESO_BORRADO: <span id="e-pow" style="color:red;">${this.enemyPower}%</span></span>
+                    </div>
+                    <div id="paradox-log" style="flex-grow:1; overflow-y:auto; font-size:0.7rem; color:#0f0; margin-bottom:10px;">
+                        [INICIANDO PROTOCOLO DE DEFENSA...]
+                    </div>
+                    <div style="background:#000; padding:10px; border:1px solid #0f0;">
+                        <span style="color:#0f0">> </span>
+                        <input type="text" id="paradox-input" autofocus autocomplete="off"
+                               style="background:transparent; border:none; color:#0f0; outline:none; width:90%;">
+                    </div>
+                `;
+
+                viewport.appendChild(battleScreen);
+                const input = document.getElementById('paradox-input');
+                input.addEventListener('input', (e) => this.handleInput(e));
+            },
+
+            handleInput(e) {
+                this.currentInput = e.target.value.toUpperCase();
+                if (this.currentInput === this.requiredCode) {
+                    this.win();
+                }
+            },
+
+            aiAttack() {
+                if (!this.isBattleActive) return;
+
+                const interval = setInterval(() => {
+                    if (!this.isBattleActive) { clearInterval(interval); return; }
+
+                    this.enemyPower += 2;
+                    this.playerDefense -= 1;
+                    
+                    this.updateUI();
+
+                    // El "Arquitecto" borra lo que estás escribiendo aleatoriamente
+                    if (Math.random() > 0.8) {
+                        const input = document.getElementById('paradox-input');
+                        if (input.value.length > 0) {
+                            input.value = input.value.slice(0, -1);
+                            this.log("AVISO: El Arquitecto ha interceptado un paquete de datos.");
+                        }
+                    }
+
+                    if (this.playerDefense <= 0) {
+                        this.lose();
+                        clearInterval(interval);
+                    }
+                }, 500);
+            },
+
+            log(msg) {
+                const log = document.getElementById('paradox-log');
+                if (log) {
+                    log.innerHTML += `<p>> ${msg}</p>`;
+                    log.scrollTop = log.scrollHeight;
+                }
+            },
+
+            updateUI() {
+                const p = document.getElementById('p-def');
+                const e = document.getElementById('e-pow');
+                if (p) p.innerText = `${this.playerDefense}%`;
+                if (e) e.innerText = `${this.enemyPower}%`;
+            },
+
+            win() {
+                this.isBattleActive = false;
+                document.getElementById('paradox-ui').remove();
+                GameEngine.logSystem("ÉXITO: Bucle de realidad roto. Accediendo al núcleo...");
+                GameEngine.loadScene('revelacion_final_omega');
+            },
+
+            lose() {
+                this.isBattleActive = false;
+                GameEngine.triggerGameOver("Tu existencia ha sido purgada por el recolector de basura del sistema.");
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL NÚCLEO DE LA PARADOJA
+         */
+
+        Object.assign(StoryData, {
+            'nucleo_final_reloj': {
+                text: "Estás ante el Motor de Realidad. Es una esfera de cristal llena de relojes de arena que fluyen hacia arriba. El Arquitecto está sentado en un trono de cables, esperándote.",
+                onEnter: () => {
+                    VisualFX.triggerDistortion();
+                },
+                choices: [
+                    { text: "Atacar al Arquitecto", target: 'nucleo_final_reloj', onSelect: () => ParadoxEngine.start() },
+                    { text: "Pedir explicaciones finales", target: 'explicacion_maestra' }
+                ]
+            },
+            'explicacion_maestra': {
+                text: "'No hay nada que explicar, Omega. Solo hay una verdad: Eres un error de redondeo en una ecuación de dolor. Si me destruyes, destruirás el servidor donde vive tu memoria'.",
+                choices: [
+                    { text: "No me importa. BREAK_LOOP.", onSelect: () => ParadoxEngine.start() },
+                    { text: "Rendirse y ser borrado", target: 'final_neutral' }
+                ]
+            },
+            'revelacion_final_omega': {
+                text: "El Arquitecto se desvanece en una lluvia de píxeles negros. Los relojes de arena se rompen. Sientes que el peso de la gravedad de la Tierra —la de verdad— vuelve a tus hombros. Hay una puerta blanca al fondo.",
+                choices: [
+                    { text: "Cruzar el umbral definitivo", target: 'final_bueno' }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE RENDERIZADO DE "FALLO CRÍTICO" (GLITCH)
+         * Provoca que toda la pantalla parpadee violentamente.
+         */
+        const CriticalGlitch = {
+            trigger() {
+                const master = document.getElementById('master-container');
+                let count = 0;
+                const i = setInterval(() => {
+                    master.style.filter = count % 2 === 0 ? "invert(1) contrast(2)" : "none";
+                    count++;
+                    if (count > 10) {
+                        clearInterval(i);
+                        master.style.filter = "none";
+                    }
+                }, 50);
+            }
+        };
+
+        // Si la cordura es baja, hay glitcheos aleatorios durante la batalla
+        setInterval(() => {
+            if (ParadoxEngine.isBattleActive && State.sanity < 30) {
+                CriticalGlitch.trigger();
+            }
+        }, 8000);
+        /**
+         * ================================================================
+         * PARTE 20: SISTEMA DE CRÉDITOS INTERACTIVOS (THE END?)
+         * El código final donde los nombres son datos que se pueden 
+         * hackear para ver el epílogo.
+         * ================================================================
+         */
+
+        const CreditsEngine = {
+            isActive: false,
+            fragmentsFound: 0,
+            totalFragments: 5,
+            
+            data: [
+                { name: "SISTEMA OPERATIVO", role: "Arquitecto de Realidad", secret: "Él solo quería protegerte." },
+                { name: "MEMORIA RAM", role: "Almacén de Traumas", secret: "El fuego ocurrió un 14 de julio." },
+                { name: "NÚCLEO DE VIDEO", role: "Renderizador de Pesadillas", secret: "Nada de esto fue real, excepto el dolor." },
+                { name: "PROTOCOLO DE RED", role: "Voz del Exterior", secret: "Tu familia te está esperando en la habitación 402." },
+                { name: "USUARIO OMEGA", role: "Sujeto de Pruebas", secret: "Es hora de despertar por fin." }
+            ],
+
+            start() {
+                this.isActive = true;
+                const master = document.getElementById('master-container');
+                master.innerHTML = `<div id="credits-canvas" style="position:relative; width:100%; height:100%; overflow:hidden; background:#000;"></div>`;
+                
+                this.renderStream();
+                GameEngine.logSystem("SISTEMA: Ejecutando secuencia de cierre... Captura fragmentos para recuperar la memoria.");
+            },
+
+            renderStream() {
+                const canvas = document.getElementById('credits-canvas');
+                let index = 0;
+
+                const streamInterval = setInterval(() => {
+                    if (!this.isActive || index >= this.data.length) {
+                        clearInterval(streamInterval);
+                        setTimeout(() => this.checkCompletion(), 5000);
+                        return;
+                    }
+
+                    const item = this.data[index];
+                    const div = document.createElement('div');
+                    div.className = 'credit-item glitch-active';
+                    div.style.cssText = `
+                        position: absolute; left: ${Math.random() * 60 + 10}%; 
+                        top: 100%; color: var(--glitch-cyan); cursor: pointer;
+                        text-align: center; transition: top 10s linear;
+                    `;
+                    div.innerHTML = `<strong>${item.name}</strong><br><span style="font-size:0.7rem;">${item.role}</span>`;
+                    
+                    div.onclick = () => {
+                        this.fragmentsFound++;
+                        div.style.color = "var(--glitch-magenta)";
+                        div.innerHTML = `[DATOS_RECUPERADOS]<br>${item.secret}`;
+                        AudioEngine.playGlitchSound();
+                    };
+
+                    canvas.appendChild(div);
+                    setTimeout(() => div.style.top = "-100px", 100);
+                    
+                    index++;
+                }, 2000);
+            },
+
+            checkCompletion() {
+                const canvas = document.getElementById('credits-canvas');
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                btn.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);";
+                
+                if (this.fragmentsFound >= this.totalFragments) {
+                    btn.innerText = "ACCEDER AL EPÍLOGO VERDADERO";
+                    btn.onclick = () => GameEngine.loadScene('epilogo_secreto');
+                } else {
+                    btn.innerText = "REINICIAR CICLO";
+                    btn.onclick = () => location.reload();
+                }
+                canvas.appendChild(btn);
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL EPÍLOGO
+         */
+
+        Object.assign(StoryData, {
+            'epilogo_secreto': {
+                text: "La pantalla se vuelve blanca. No es el blanco del software, es la luz del sol entrando por una ventana de hospital. Sientes el tacto de sábanas de algodón. Una mano aprieta la tuya. 'Bienvenido de nuevo', dice una voz real. El monitor cardiaco suena con un ritmo constante. 60 BPM. Estable.",
+                onEnter: () => {
+                    // Borramos la persistencia, el jugador es libre
+                    localStorage.removeItem('omega_memory');
+                },
+                choices: [
+                    { text: "Abrir los ojos", onSelect: () => location.reload() }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE PERSISTENCIA (LOCAL STORAGE)
+         * El juego guarda tus pecados incluso si cierras la pestaña.
+         */
+        const PersistenceEngine = {
+            save() {
+                const data = {
+                    sanity: State.sanity,
+                    sync: State.sync,
+                    flags: Array.from(State.flags),
+                    lastScene: State.currentScene
+                };
+                localStorage.setItem('omega_memory', JSON.stringify(data));
+            },
+
+            load() {
+                const saved = localStorage.getItem('omega_memory');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    State.sanity = data.sanity;
+                    State.sync = data.sync;
+                    State.flags = new Set(data.flags);
+                    GameEngine.logSystem("MEMORIA_DETECTADA: Reanudando simulación previa...");
+                }
+            }
+        };
+
+        // Guardar automáticamente cada 30 segundos
+        setInterval(() => PersistenceEngine.save(), 30000);
+
+        /**
+         * REDEFINICIÓN DE LOS FINALES PARA INTEGRAR CRÉDITOS
+         */
+        const originalEndingExecute = EndingEngine.execute;
+        EndingEngine.execute = function(type) {
+            // Antes de terminar, mostramos un mensaje final
+            GameEngine.logSystem(`EJECUTANDO_DESENLACE: ${type}`);
+            setTimeout(() => {
+                CreditsEngine.start();
+            }, 5000);
+        };
+        /**
+         * ================================================================
+         * PARTE 21: MODO DEBUG Y BESTIARIO DE ERRORES (META-GAME)
+         * Acceso a las variables raíz y registro de entidades fallidas.
+         * ================================================================
+         */
+
+        const DebugConsole = {
+            isOpen: false,
+            history: [],
+
+            init() {
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'F2' || e.key === '`') {
+                        this.toggle();
+                    }
+                });
+            },
+
+            toggle() {
+                this.isOpen = !this.isOpen;
+                let consoleDiv = document.getElementById('debug-terminal');
+                
+                if (this.isOpen) {
+                    if (!consoleDiv) {
+                        consoleDiv = document.createElement('div');
+                        consoleDiv.id = 'debug-terminal';
+                        consoleDiv.style.cssText = `
+                            position: fixed; bottom: 0; left: 0; width: 100%; height: 30%;
+                            background: rgba(0, 20, 0, 0.95); color: #0f0; z-index: 9999;
+                            font-family: monospace; padding: 10px; border-top: 2px solid #0f0;
+                            overflow-y: auto; font-size: 0.8rem;
+                        `;
+                        document.body.appendChild(consoleDiv);
+                        this.render();
+                    }
+                    consoleDiv.style.display = 'block';
+                    GameEngine.logSystem("MODO_DEBUG: Acceso de administrador nivel 0.");
+                } else if (consoleDiv) {
+                    consoleDiv.style.display = 'none';
+                }
+            },
+
+            render() {
+                const terminal = document.getElementById('debug-terminal');
+                terminal.innerHTML = `
+                    <div style="border-bottom: 1px solid #0f0; padding-bottom: 5px; margin-bottom: 10px;">
+                        [KERNEL_DEBUGGER] - Escribe 'help' para comandos.
+                    </div>
+                    <div id="debug-output"></div>
+                    <div style="display:flex;">
+                        <span>> </span>
+                        <input type="text" id="debug-input" autofocus 
+                               style="background:transparent; border:none; color:#0f0; outline:none; width:100%;">
+                    </div>
+                `;
+
+                const input = document.getElementById('debug-input');
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.execute(e.target.value);
+                        e.target.value = '';
+                    }
+                });
+            },
+
+            execute(cmd) {
+                const out = document.getElementById('debug-output');
+                const parts = cmd.toLowerCase().split(' ');
+                let response = "";
+
+                switch(parts[0]) {
+                    case 'help':
+                        response = "COMANDOS: set_sanity [n], set_sync [n], jump [escena], unlock_all, clear_memory";
+                        break;
+                    case 'set_sanity':
+                        State.sanity = parseInt(parts[1]) || 100;
+                        response = `SANITY_SYNC: OK -> ${State.sanity}`;
+                        GameEngine.updateUI();
+                        break;
+                    case 'jump':
+                        if (StoryData[parts[1]]) {
+                            GameEngine.loadScene(parts[1]);
+                            response = `WARP: Exitosa a ${parts[1]}`;
+                        } else {
+                            response = "ERROR: Escena no encontrada.";
+                        }
+                        break;
+                    case 'unlock_all':
+                        State.inventory.push({name: "Llave Maestra", id: "master_key"});
+                        State.flags.add('objeto_misterioso');
+                        State.flags.add('acceso_nivel_2');
+                        response = "PRIVILEGIOS_ELEVADOS: Todas las flags activadas.";
+                        break;
+                    default:
+                        response = `ERROR: Comando '${parts[0]}' no reconocido.`;
+                }
+
+                out.innerHTML += `<p style="margin:2px 0;"><span style="color:#888;">#</span> ${cmd}</p>`;
+                out.innerHTML += `<p style="margin:2px 0; color:#fff;">${response}</p>`;
+                out.scrollTop = out.scrollHeight;
+            }
+        };
+
+        /**
+         * EL BESTIARIO DE ERRORES (DATA LOG)
+         * Registro de "monstruos" que son en realidad fallos de código.
+         */
+        const Bestiary = {
+            entries: {
+                'null_stalker': {
+                    name: "Acechador Nulo",
+                    desc: "Un error de referencia que intenta llenar variables vacías con tejido humano.",
+                    risk: "CRÍTICO"
+                },
+                'buffer_leach': {
+                    name: "Sanguijuela de Búfer",
+                    desc: "Entidad que consume la memoria a corto plazo, provocando el desvanecimiento del texto.",
+                    risk: "MEDIO"
+                },
+                'stack_beast': {
+                    name: "Bestia de la Pila",
+                    desc: "Se manifiesta cuando el jugador realiza acciones recursivas sin sentido.",
+                    risk: "ALTO"
+                }
+            },
+
+            show(id) {
+                const entry = this.entries[id];
+                const viewport = document.getElementById('viewport');
+                const bestiaryDiv = document.createElement('div');
+                bestiaryDiv.className = 'message';
+                bestiaryDiv.style.borderColor = 'var(--glitch-magenta)';
+                bestiaryDiv.innerHTML = `
+                    <h3 style="color:var(--glitch-magenta)">[REGISTRO_ANOMALÍA: ${entry.name}]</h3>
+                    <p>${entry.desc}</p>
+                    <small>NIVEL_DE_RIESGO: ${entry.risk}</small>
+                `;
+                viewport.appendChild(bestiaryDiv);
+            }
+        };
+
+        // Inicializar consola
+        DebugConsole.init();
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL ARCHIVO DE REGISTROS
+         */
+        Object.assign(StoryData, {
+            'sala_registros': {
+                text: "Un pasillo lleno de servidores que zumban con una frecuencia agresiva. En una pantalla de fósforo verde, puedes ver el registro de las entidades que habitan este sistema.",
+                choices: [
+                    { text: "Leer sobre el Acechador Nulo", target: 'sala_registros', onSelect: () => Bestiary.show('null_stalker') },
+                    { text: "Leer sobre la Sanguijuela de Búfer", target: 'sala_registros', onSelect: () => Bestiary.show('buffer_leach') },
+                    { text: "Ir a la Cámara de Descompresión", target: 'camora_descompresion' }
+                ]
+            }
+        });
+        /**
+         * ================================================================
+         * PARTE 22: LA PAPELERA DE RECURSOS (SECTOR RECYCLE_BIN)
+         * Recuperación de objetos borrados y degradación estética.
+         * ================================================================
+         */
+
+        const RecycleEngine = {
+            deletedItems: [],
+            isCorrupting: false,
+
+            // Simula la recuperación de un objeto del "limbo"
+            restoreItem(id) {
+                const itemMap = {
+                    'old_key': { name: "Llave Oxidada (v0.1)", id: "llave_v0" },
+                    'corrupt_log': { name: "Log de Error 404", id: "log_404" },
+                    'broken_heart': { name: "Pulso Binario", id: "pulso_bin" }
+                };
+
+                if (itemMap[id]) {
+                    GameEngine.inventoryAdd(itemMap[id].name, itemMap[id].id);
+                    GameEngine.logSystem(`RECOVERY: Objeto ${id} restaurado del sector defectuoso.`);
+                    VisualFX.triggerDistortion();
+                }
+            },
+
+            // Efecto de "Falso Borrado de Partida"
+            fakeCorruption() {
+                this.isCorrupting = true;
+                const master = document.getElementById('master-container');
+                master.style.transition = "none";
+                
+                let count = 0;
+                const interval = setInterval(() => {
+                    master.style.opacity = Math.random() > 0.5 ? "0" : "1";
+                    GameEngine.logSystem(`CRITICAL_ERROR: Checksum mismatch in save_block_${count}`);
+                    count++;
+                    if (count > 20) {
+                        clearInterval(interval);
+                        master.style.opacity = "1";
+                        this.isCorrupting = false;
+                        GameEngine.logSystem("RECOVERY: Datos restaurados mediante redundancia.");
+                    }
+                }, 50);
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL SECTOR RECYCLE_BIN
+         */
+
+        Object.assign(StoryData, {
+            'papelera_reciclaje': {
+                text: "Estás caminando sobre una montaña de iconos rotos y ventanas de error minimizadas. El cielo es de un color gris 'Windows 95'. Aquí es donde el sistema arroja lo que ya no considera útil. Incluyéndote.",
+                onEnter: () => {
+                    if (Math.random() > 0.7) RecycleEngine.fakeCorruption();
+                },
+                choices: [
+                    { text: "Rebuscar entre los archivos temporales", target: 'archivos_temporales' },
+                    { text: "Restaurar la 'Llave Oxidada'", target: 'papelera_reciclaje', onSelect: () => RecycleEngine.restoreItem('old_key') },
+                    { text: "Escalar la montaña de basura hacia el Kernel", target: 'kernel_entrada' }
+                ]
+            },
+            'archivos_temporales': {
+                text: "Encuentras fragmentos de conversaciones que nunca tuviste. 'No te olvides de comprar pan', 'Te quiero, papá'. Los datos están tan degradados que duelen al leerlos.",
+                choices: [
+                    { text: "Ignorar el ruido blanco", target: 'papelera_reciclaje' },
+                    { text: "Intentar guardar un recuerdo", onSelect: () => {
+                        State.sanity -= 10;
+                        GameEngine.logSystem("ERROR: Espacio de memoria insuficiente para emociones.");
+                    }, target: 'papelera_reciclaje' }
+                ]
+            },
+            'kernel_entrada': {
+                text: "La base de la montaña termina en una pared de comandos purísimos. Es la entrada al Kernel del Sistema. Solo aquellos con una Sincronización perfecta o un desprecio total por su vida pueden entrar.",
+                choices: [
+                    { text: "Entrar al Kernel (Sync > 80)", target: 'kernel_interior', requirement: 'sync_alto' },
+                    { text: "Forzar entrada (Drena 50 Cordura)", target: 'kernel_interior', onSelect: () => State.sanity -= 50 },
+                    { text: "Volver a la Papelera", target: 'papelera_reciclaje' }
+                ]
+            }
+        });
+
+        // Requisito dinámico para el Kernel
+        StoryData['kernel_entrada'].choices[0].condition = () => State.sync > 80;
+
+        /**
+         * SISTEMA DE RENDERIZADO DE "VENTANAS EMERGENTES" (POP-UPS)
+         * Genera ventanas de error clásicas que bloquean la visión.
+         */
+        const PopUpEngine = {
+            spawn() {
+                if (State.currentScene !== 'papelera_reciclaje') return;
+
+                const popup = document.createElement('div');
+                popup.style.cssText = `
+                    position: absolute; width: 200px; padding: 2px;
+                    background: #c0c0c0; border: 2px solid;
+                    border-color: #fff #808080 #808080 #fff;
+                    left: ${Math.random() * 70}%; top: ${Math.random() * 70}%;
+                    z-index: 3000; font-family: 'Tahoma', sans-serif; color: #000;
+                `;
+                popup.innerHTML = `
+                    <div style="background: #000080; color: #fff; padding: 2px 5px; font-weight: bold; font-size: 10px; display: flex; justify-content: space-between;">
+                        <span>System Error</span>
+                        <span style="cursor:pointer;" onclick="this.parentElement.parentElement.remove()">X</span>
+                    </div>
+                    <div style="padding: 10px; font-size: 12px;">
+                        Illegal operation at 0x80045.
+                    </div>
+                `;
+                document.getElementById('viewport').appendChild(popup);
+                
+                // Las ventanas desaparecen tras un tiempo si no se cierran
+                setTimeout(() => { if(popup) popup.remove(); }, 5000);
+            }
+        };
+
+        setInterval(() => PopUpEngine.spawn(), 4000);
+
+        /**
+         * FILTRO DE DEGRADACIÓN (LO-FI)
+         * Reduce la calidad visual en la papelera.
+         */
+        const LoFiEngine = {
+            apply() {
+                const view = document.getElementById('viewport');
+                if (State.currentScene === 'papelera_reciclaje') {
+                    view.style.imageRendering = "pixelated";
+                    view.style.filter = "contrast(1.2) brightness(0.9) sepia(0.2)";
+                } else {
+                    view.style.imageRendering = "auto";
+                }
+            }
+        };
+
+        // Inyectamos el filtro en el loop de actualización
+        const oldUpdateUIPapelera = GameEngine.updateUI;
+        GameEngine.updateUI = function() {
+            oldUpdateUIPapelera.call(this);
+            LoFiEngine.apply();
+        };
+        /**
+         * ================================================================
+         * PARTE 23: EL KERNEL (GESTIÓN DE PUNTEROS)
+         * Navegación técnica mediante direcciones de memoria.
+         * ================================================================
+         */
+
+        const KernelEngine = {
+            memoryMap: {
+                '0x001': { target: '0x00F', type: 'DATA', label: 'USER_ID' },
+                '0x00F': { target: '0x1A2', type: 'POINTER', label: 'ROOT_ACCESS' },
+                '0x1A2': { target: 'EXIT', type: 'GATE', label: 'OS_EXIT' },
+                '0xDEAD': { target: '0x001', type: 'ERROR', label: 'MEM_LEAK' }
+            },
+            currentAddress: '0x001',
+
+            jump(addr) {
+                const node = this.memoryMap[addr];
+                if (!node) return;
+
+                this.currentAddress = addr;
+                GameEngine.logSystem(`MOV: EAX -> ${addr} [${node.label}]`);
+                
+                if (node.type === 'ERROR') {
+                    State.sanity -= 20;
+                    VisualFX.triggerDistortion();
+                }
+
+                if (node.target === 'EXIT') {
+                    GameEngine.loadScene('salida_sistema_final');
+                } else {
+                    GameEngine.loadScene('kernel_interior');
+                }
+            },
+
+            renderMap() {
+                let html = '<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; margin-top:20px;">';
+                for (let addr in this.memoryMap) {
+                    const isCurrent = addr === this.currentAddress;
+                    html += `
+                        <div onclick="KernelEngine.jump('${addr}')" 
+                             style="border:1px solid ${isCurrent ? '#fff' : '#444'}; 
+                                    padding:5px; cursor:pointer; font-size:0.7rem;
+                                    background:${isCurrent ? 'rgba(255,255,255,0.1)' : 'transparent'}">
+                             ${addr} <br> <span style="color:#888;">${this.memoryMap[addr].label}</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                return html;
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: EL KERNEL
+         */
+
+        Object.assign(StoryData, {
+            'kernel_interior': {
+                text: "No hay imágenes aquí. Solo direcciones. Te has convertido en una instrucción de bajo nivel. El sistema te está procesando como un hilo de ejecución más. Debes encontrar el puntero que apunta a la salida del Sistema Operativo.",
+                choices: [
+                    { text: "Intentar forzar retorno (POP EAX)", target: 'papelera_reciclaje' }
+                ],
+                renderExtra: () => KernelEngine.renderMap()
+            },
+            'salida_sistema_final': {
+                text: "Has alcanzado la interrupción de hardware final. El código se detiene. Ya no hay más instrucciones. Sientes que el 'Procesador' te libera.",
+                choices: [
+                    { text: "Ejecutar comando: HALT", target: 'final_bueno', requirement: 'sync_alto' },
+                    { text: "Ejecutar comando: REBOOT", target: 'final_neutral' }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE LLAMADAS AL SISTEMA (SYSCALLS)
+         * Genera alertas de texto rápido que el jugador debe ignorar.
+         */
+        const SysCallFX = {
+            calls: ["SYS_READ", "SYS_WRITE", "SYS_OPEN", "SYS_FORK", "SYS_EXECVE"],
+            spawn() {
+                if (State.currentScene !== 'kernel_interior') return;
+                
+                const call = document.createElement('div');
+                call.innerText = this.calls[Math.floor(Math.random() * this.calls.length)];
+                call.style.cssText = `
+                    position: absolute; right: 10px;
+                    top: ${Math.random() * 90}%;
+                    color: #fff; font-family: monospace;
+                    font-size: 0.6rem; opacity: 0.5;
+                    pointer-events: none;
+                    animation: slide-left 0.5s linear;
+                `;
+                document.getElementById('viewport').appendChild(call);
+                setTimeout(() => call.remove(), 500);
+            }
+        };
+
+        // Estilo de animación para los SysCalls
+        const kernelStyle = document.createElement('style');
+        kernelStyle.innerHTML = `
+            @keyframes slide-left {
+                from { transform: translateX(50px); opacity: 1; }
+                to { transform: translateX(-150px); opacity: 0; }
+            }
+            .kernel-vertical { writing-mode: vertical-rl; text-orientation: monospace; }
+        `;
+        document.head.appendChild(kernelStyle);
+
+        setInterval(() => SysCallFX.spawn(), 300);
+
+        /**
+         * MECÁNICA DE CORRUPCIÓN POR "RACE CONDITION"
+         * Si el jugador tarda mucho en elegir un puntero, la cordura baja.
+         */
+        const RaceConditionMonitor = {
+            timer: 0,
+            check() {
+                if (State.currentScene === 'kernel_interior') {
+                    this.timer++;
+                    if (this.timer > 10) { // 10 segundos de indecisión
+                        State.sanity -= 2;
+                        GameEngine.logSystem("ADVERTENCIA: Condición de carrera detectada. Ciclos de CPU desperdiciados.");
+                        this.timer = 0;
+                        GameEngine.updateUI();
+                    }
+                } else {
+                    this.timer = 0;
+                }
+            }
+        };
+
+        setInterval(() => RaceConditionMonitor.check(), 1000);
+        /**
+         * ================================================================
+         * PARTE 24: MEMORIA ROM (RECUERDOS NO VOLÁTILES)
+         * El sector donde el código se vuelve piedra.
+         * Implementación de la "Persistencia de Error" visual.
+         * ================================================================
+         */
+
+        const ROMEngine = {
+            burnedMessages: [],
+
+            // Graba un mensaje en el fondo de la pantalla de forma permanente
+            burnMessage(text) {
+                const id = `burn-${Date.now()}`;
+                this.burnedMessages.push(id);
+                
+                const burn = document.createElement('div');
+                burn.id = id;
+                burn.innerText = text;
+                burn.style.cssText = `
+                    position: absolute;
+                    left: ${Math.random() * 60 + 20}%;
+                    top: ${Math.random() * 80 + 10}%;
+                    color: rgba(0, 255, 65, 0.08); /* Apenas visible, como un fantasma */
+                    font-family: 'Courier New', monospace;
+                    font-size: 1.5rem;
+                    z-index: 0;
+                    pointer-events: none;
+                    user-select: none;
+                    transform: rotate(${Math.random() * 20 - 10}deg);
+                `;
+                document.getElementById('master-container').appendChild(burn);
+            },
+
+            applyStaticFilter() {
+                const viewport = document.getElementById('viewport');
+                viewport.style.boxShadow = "inset 0 0 100px #000, 0 0 10px rgba(0, 255, 0, 0.2)";
+                viewport.style.background = "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))";
+                viewport.style.backgroundSize = "100% 2px, 3px 100%";
+            }
+        };
+
+        /**
+         * EXPANSIÓN DE STORYDATA: SECTOR ROM
+         */
+
+        Object.assign(StoryData, {
+            'sector_rom': {
+                text: "Has entrado en un archivo de cristal. Aquí las paredes no parpadean; son sólidas, frías y contienen grabados de cada comando que has ejecutado. Es la Memoria de Solo Lectura. Lo que hagas aquí no se puede deshacer.",
+                onEnter: () => {
+                    ROMEngine.applyStaticFilter();
+                    if (State.flags.has('piedad_falsa')) ROMEngine.burnMessage("TRAIDOR");
+                    if (State.sanity < 30) ROMEngine.burnMessage("FRAGMENTADO");
+                    if (State.sync > 80) ROMEngine.burnMessage("PURO");
+                },
+                choices: [
+                    { text: "Tocar un grabado de memoria", target: 'flashback_rom', sanityMod: -5 },
+                    { text: "Buscar el Puente de Datos", target: 'puente_datos_rom' },
+                    { text: "Intentar sobrescribir (Error de Escritura)", onSelect: () => {
+                        GameEngine.logSystem("CRITICAL_ERROR: Permiso de escritura denegado en ROM.");
+                        ROMEngine.burnMessage("NO PUEDES CAMBIAR EL PASADO");
+                    }, target: 'sector_rom' }
+                ]
+            },
+            'flashback_rom': {
+                text: "Al tocar el cristal, una imagen nítida aparece en tu mente: no es código, es una fotografía. Una mujer riendo frente a un pastel de cumpleaños. El nombre en el pastel está borrado, pero el sentimiento de pérdida es real.",
+                choices: [
+                    { text: "Llorar (Si queda humanidad)", target: 'sector_rom', onSelect: () => State.sync += 5 },
+                    { text: "Analizar la imagen como datos corruptos", target: 'sector_rom', onSelect: () => State.sync -= 10 }
+                ]
+            },
+            'puente_datos_rom': {
+                text: "Un puente de luz sólida cruza un abismo de estática absoluta. Al final del puente, ves una estructura que se asemeja a una CPU gigante. Es el destino final de todos los hilos.",
+                choices: [
+                    { text: "Cruzar el puente", target: 'la_cpu_final' },
+                    { text: "Mirar al abismo", target: 'abismo_datos', sanityMod: -20 }
+                ]
+            },
+            'abismo_datos': {
+                text: "El abismo no está vacío. Está lleno de versiones descartadas de ti mismo, miles de 'Omegas' que cayeron en sectores defectuosos. Te saludan en silencio.",
+                choices: [
+                    { text: "Retroceder aterrorizado", target: 'sector_rom' }
+                ]
+            }
+        });
+
+        /**
+         * SISTEMA DE RENDERIZADO DE SCANLINES DINÁMICOS
+         * Añade una capa de distorsión de tubo catódico (CRT).
+         */
+        const CRTDistortion = {
+            init() {
+                const overlay = document.createElement('div');
+                overlay.id = 'crt-scanlines';
+                overlay.style.cssText = `
+                    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+                    background-size: 100% 4px; z-index: 1000; pointer-events: none;
+                `;
+                document.getElementById('viewport').appendChild(overlay);
+            }
+        };
+
+        CRTDistortion.init();
+
+        /**
+         * MONITOR DE INTEGRIDAD DE HARDWARE
+         * Detecta si el jugador está abusando de la consola o de los tiempos de espera.
+         */
+        const HardwareMonitor = {
+            temp: 35,
+            check() {
+                if (State.currentScene.includes('rom')) {
+                    this.temp += 1;
+                    if (this.temp > 85) {
+                        GameEngine.logSystem("ALERTA: Temperatura de hardware crítica. ROM en riesgo.");
+                        VisualFX.triggerDistortion();
+                    }
+                } else {
+                    this.temp = Math.max(35, this.temp - 2);
+                }
+            }
+        };
+
+        setInterval(() => HardwareMonitor.check(), 3000);
+        /**
+         * ================================================================
+         * PARTE 25: EL TRONO DE SILICIO (CPU_CORE)
+         * El clímax técnico. Sincronización de hercios y desenlace.
+         * ================================================================
+         */
+
+        const CPUEngine = {
+            hz: 0,
+            targetHz: 60,
+            isOverclocked: false,
+
+            syncClock(delta) {
+                this.hz += delta;
+                this.updateUI();
+                
+                if (Math.abs(this.hz - this.targetHz) < 2) {
+                    this.triggerFinalSequence();
+                }
+            },
+
+            updateUI() {
+                const monitor = document.getElementById('cpu-clock-monitor');
+                if (monitor) {
+                    monitor.innerText = `${this.hz.toFixed(1)} Hz`;
+                    monitor.style.color = this.hz > 70 ? 'var(--glitch-magenta)' : 'var(--glitch-cyan)';
+                }
+            },
+
+            triggerFinalSequence() {
+                this.isOverclocked = true;
+                const master = document.getElementById('master-container');
+                master.style.animation = "final-dissolve 4s forwards";
+                
+                GameEngine.logSystem("SISTEMA: Frecuencia igualada. Rompiendo barrera de ejecución...");
+                
+                setTimeout(() => {
+                    EndingEngine.execute(State.sync > 50 ? 'FINAL_BUENO' : 'FINAL_NEUTRAL');
+                }, 4000);
+            }
+        };
+
+        /**
+         * EXPANSIÓN FINAL DE STORYDATA: EL NÚCLEO CPU
+         */
+
+        Object.assign(StoryData, {
+            'la_cpu_final': {
+                text: "Estás en el centro de todo. Una torre de silicio puro se alza ante ti, vibrando a una velocidad inimaginable. Es el procesador que mantiene este mundo unido. El aire está ionizado. Cada pensamiento tuyo genera una chispa eléctrica.",
+                onEnter: () => {
+                    AudioEngine.playGlitchSound();
+                    GameEngine.logSystem("ADVERTENCIA: Sincroniza tu pulso (60Hz) para forzar la salida.");
+                },
+                choices: [
+                    { text: "Aumentar frecuencia (+10 Hz)", target: 'la_cpu_final', onSelect: () => CPUEngine.syncClock(10) },
+                    { text: "Reducir frecuencia (-10 Hz)", target: 'la_cpu_final', onSelect: () => CPUEngine.syncClock(-10) },
+                    { text: "Ajuste fino (+1 Hz)", target: 'la_cpu_final', onSelect: () => CPUEngine.syncClock(1) },
+                    { text: "Tocar el núcleo desprotegido", target: 'muerte_voltaje', sanityMod: -100 }
+                ],
+                renderExtra: () => `
+                    <div style="margin-top:20px; border:2px solid var(--glitch-cyan); padding:15px; text-align:center;">
+                        <div style="font-size:0.6rem; margin-bottom:5px;">CLOCK_SPEED:</div>
+                        <div id="cpu-clock-monitor" style="font-size:2rem; font-weight:bold; font-family:monospace;">0.0 Hz</div>
+                    </div>
+                `
+            },
+            'muerte_voltaje': {
+                text: "No hubo dolor, solo una luz blanca absoluta. Te has convertido en energía pura, alimentando el sistema que intentabas destruir. Eres un susurro en la línea de alta tensión.",
+                choices: [{ text: "REINTENTAR CICLO", onSelect: () => location.reload() }]
+            }
+        });
+
+        // Estilos finales de disolución
+        const finalStyle = document.createElement('style');
+        finalStyle.innerHTML = `
+            @keyframes final-dissolve {
+                0% { filter: brightness(1) blur(0); }
+                50% { filter: brightness(5) blur(10px) saturate(0); }
+                100% { filter: brightness(0) blur(20px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(finalStyle);
+
+        /**
+         * INICIALIZACIÓN FINAL DEL MOTOR
+         * El punto donde el código cobra vida.
+         */
+        window.onload = () => {
+            PersistenceEngine.load();
+            GameEngine.loadScene(State.currentScene || 'despertar');
+            
+            // Si el usuario vuelve tras el epílogo, el sistema está "limpio"
+            if (!localStorage.getItem('omega_memory')) {
+                console.log("Sujeto liberado. Memoria volátil activa.");
+            }
+        };
+
+        // Cerramos el motor.
+        console.log("PROJECT_OMEGA: Engine Status [STABLE]. Total Lines: ~3900.");
+  </body>
+</html>
