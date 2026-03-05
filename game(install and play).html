@@ -3916,9 +3916,24 @@
         };
 
         // Cerramos el motor.
-        console.log("PROJECT_OMEGA: Engine Status [STABLE]. Total Lines: ~3900.");
-// ... (últimas líneas de tu código JS)
-        GameEngine.boot();
-    </script>
-</body>
-</html>
+        console.log("PROJECT_OMEGA: Engine Status [STABLE]. Total Lines: ~3900.");/**
+         * LÓGICA DE INICIO (BOOTLOADER)
+         * Este bloque asegura que el juego comience incluso si hay latencia de carga.
+         */
+        function bootGame() {
+            try {
+                console.log("Iniciando Protocolo Omega...");
+                PersistenceEngine.load();
+                // Si no hay escena guardada, empezamos en 'despertar' (Parte 1)
+                GameEngine.loadScene(State.currentScene || 'despertar');
+                GameEngine.updateUI();
+            } catch (e) {
+                console.error("Error crítico en el arranque:", e);
+            }
+        }
+
+        // Ejecutar inicio
+        bootGame();
+
+    </script> </body>
+</html> ```
