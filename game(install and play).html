@@ -271,7 +271,12 @@
     </style>
 </head>
 <body>
-
+    <script>
+        /**
+         * ================================================================
+         * PROYECTO OMEGA - INICIO DEL CÓDIGO
+         * ================================================================
+         */
     <div class="crt-overlay"></div>
     
     <div id="master-container">
@@ -3890,7 +3895,9 @@
             }
         });
 
-        // Estilos finales de disolución
+    // --- UNIFICACIÓN DE CIERRE Y ARRANQUE ---
+
+        // 1. Estilos finales de disolución
         const finalStyle = document.createElement('style');
         finalStyle.innerHTML = `
             @keyframes final-dissolve {
@@ -3901,36 +3908,29 @@
         `;
         document.head.appendChild(finalStyle);
 
-        /**
-         * INICIALIZACIÓN FINAL DEL MOTOR
-         * El punto donde el código cobra vida.
-         */
-        window.onload = () => {
-            PersistenceEngine.load();
-            GameEngine.loadScene(State.currentScene || 'despertar');
-            
-            // Si el usuario vuelve tras el epílogo, el sistema está "limpio"
-            if (!localStorage.getItem('omega_memory')) {
-                console.log("Sujeto liberado. Memoria volátil activa.");
-            }
-        };
-
-        // Cerramos el motor.
-        console.log("PROJECT_OMEGA: Engine Status [STABLE]. Total Lines: ~3900.");/
-
-        
-
+        // 2. Función de arranque maestra
         function startOmegaProject() {
+            console.log("Iniciando Protocolo Omega...");
             try {
+                // Carga memoria persistente si existe
                 PersistenceEngine.load();
-                GameEngine.boot();
-                console.log("PROYECTO_OMEGA: Ejecución iniciada correctamente.");
+                
+                // Si el motor tiene la función boot, úsala, si no, carga la escena directamente
+                if (typeof GameEngine.boot === "function") {
+                    GameEngine.boot();
+                } else {
+                    GameEngine.loadScene(State.currentScene || 'despertar');
+                }
+                
+                console.log("PROYECTO_OMEGA: Estado Estable. Líneas estimadas: 3900.");
             } catch (e) {
-                GameEngine.boot();
+                console.error("Error en boot:", e);
+                // Intento de rescate: cargar escena inicial por defecto
+                GameEngine.loadScene('despertar');
             }
         }
 
-        // Arrancamos cuando la ventana esté lista
+        // 3. Único punto de entrada
         window.onload = startOmegaProject;
 
     </script>
